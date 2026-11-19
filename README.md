@@ -11,12 +11,12 @@ Scope: one zone only, ย.7 under the Bangkok Comprehensive Plan B.E. 2556 (2013
 ## How to use it
 
 1. Open the live link. The map shows the study area.
-2. Draw a plot with the polygon tool (any shape), or open the presets menu and load one of eight example plots on real blocks.
-3. For each plot edge, say whether it faces a road, a neighbour or a waterway. For a road, confirm its width. The tool pre-fills a width estimated from road data and labels it as an estimate.
+2. Make a plot. Draw it with the polygon tool (any shape), or open the examples menu and load one of eight example plots on real blocks. To make a plot without a mouse, open "Enter corner coordinates" and type the corners.
+3. For each plot edge, say whether it faces a road, a neighbour or a waterway. For a road, confirm its width. The starting value is estimated from road data (by road class or lane count) and is labelled as an estimate. Replace it with the measured width.
 4. Pick the building type: condo or office.
 5. Read the rules, the envelope in 3D, and the designs. Switch between the low-rise and high-rise designs, and read each design's checklist and area schedule.
-6. Switch a rule off to see the volume without it. Edit the assumptions (floor height, efficiency) to see how the designs change.
-7. Copy the link. The scenario is stored in the URL hash, so a pasted link restores the plot, edges, type and settings.
+6. Switch a rule off to see the volume without it. Edit the assumptions (floor height, efficiency) or the readings of unclear law to see how the designs change.
+7. Press "Copy link". The scenario is stored in the URL hash (format v2): plot, edges, type, assumptions, readings and switched-off rules. The hash is never sent to a server. Links made in the earlier format (v1) still open.
 
 Everything recomputes as you edit, with no reload. A plot outside ย.7 gets the zone name and no verdict.
 
@@ -27,7 +27,7 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | Rule | What it does | Source and clause |
 |---|---|---|
 | Floor area ratio | Caps total floor area at 5 times the plot. Capped at 10 in the high-rise regime. No bonus is applied. | Plan 2556 cl. 14(1); MR 33 cl. 5 |
-| Use size limit | Condo over 10,000 m² needs a road 30 m wide (with 30 m frontage) or a station within 500 m. Office over 1,000 m² needs a 16 m road or a station; offices over 10,000 m² are not allowed. | Plan 2556 cl. 14(11), 14(13), 36, 37 |
+| Use size limit | Condo over 10,000 m² needs a road 30 m wide (with 30 m frontage, measured along the road) or a station within 500 m. Office over 1,000 m² needs a 16 m road (16 m frontage) or a station; offices over 10,000 m² are not allowed. | Plan 2556 cl. 14(11), 14(13), 36, 37 |
 | Open space ratio | Open space at least 6% of total floor area. | Plan 2556 cl. 14(2) |
 | Open space on the plot | 30% of the plot for condo, 10% for office. | BMA 2544 cl. 52; MR 33 cl. 6 |
 | Open space on the largest floor | 30% (condo) or 10% (office) of the largest floor. | MR 55 cl. 33 |
@@ -36,15 +36,21 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | Clear space | 2 m around the building. | BMA 2544 cl. 55 |
 | Rear walkway | Office only: 2 m walkway behind the building, kept from every neighbouring boundary. It says when the other setbacks already exceed it, as they do on most plots. Applying it to an office is our reading. | BMA 2544 cl. 52(7) |
 | Waterway setback | 3 m from a waterway under 10 m wide, 6 m otherwise. | MR 55 cl. 42 |
-| Height plane | Height at any point at most twice the distance to the far side of the nearest road. | MR 55 cl. 44 to 46; BMA 2544 cl. 49 |
+| Height plane | Height at any point at most twice the distance to the far side of the nearest road. Every road on the plot applies. The wider road governs alone only when the plot verifiably meets the 60 m conditions of cl. 45 and 46. | MR 55 cl. 44 to 46; BMA 2544 cl. 49 |
 | High-rise threshold | Roof deck at 23 m or more, or 10,000 m² or more, switches the building to the high-rise regime. | MR 33 cl. 1 |
 | High-rise setback | 6 m from every boundary, whole building. | MR 33 cl. 4 |
 | High-rise road access | 12 m of frontage on a road at least 10 m wide (18 m above 30,000 m²). | MR 33 cl. 2 |
-| Front access | Two lawful forms, the one with more floor area offered: on the road, facing it with more than an eighth of the perimeter within 20 m (cl. 53), or set back more than 20 m behind a front open space of 6 m (12 m over 3 storeys) along a sixth of the perimeter, linked to the road (cl. 52(6)). A setting applies the stricter reading, 52(6) for every building over 2 storeys or 8 m. | BMA 2544 cl. 52(6), 53 |
-| Parking | Condo: one stall per 60 m² unit or per 120 m², whichever is greater. Office: one per 60 m². | BMA 2544 cl. 84; MR 7 cl. 3 |
+| Front open space | Two lawful forms, and the one with more floor area is offered. On the road: the building line facing the road is longer than an eighth of the perimeter and within 20 m of the road (cl. 53). Set back: more than 20 m from the road, behind a front open space 6 m wide (12 m over 3 storeys) along a sixth of the perimeter, linked to the road by open ground at least 6 m wide (cl. 52(6)). The summary says which form and why. A setting applies the stricter reading: cl. 52(6) for every building over 2 storeys or 8 m. Our reading, not settled law. | BMA 2544 cl. 52(6), 53 |
+| Parking | Condo: one stall per 60 m² unit or per 120 m², whichever is greater. Office: one per 60 m². Parking is sized to the requirement, with one shared level for parking and main use. | BMA 2544 cl. 84; MR 7 cl. 3 |
 | Floor-to-floor height | At least 2.6 m (condo), 3 m (office). | MR 55 cl. 22 |
-| Fire road and planting | High-rise: the open ground outside a 6 m ring around the building must hold the permeable planting (half the open space). Pass or fail, by area; the generator shrinks the plate until it fits. | MR 33 cl. 3; Plan 2556 cl. 14(2) |
-| Information only | Permeable planting, fire-truck road, parking clear height (2.10 m under beams), environmental impact assessment trigger (80 units, or 4,000 m² of usable area, compared with the total floor area). Shown, not computed. | Plan 2556 cl. 14(2); MR 33 cl. 2, 3; MR 41 cl. 4; ONEP guidance |
+| Fire road and planting | High-rise: the open ground outside a 6 m ring around the building must hold the permeable planting (half the open space). Pass or fail, by area. A design that cannot fit both is not offered. The layout is not drawn. | MR 33 cl. 3; Plan 2556 cl. 14(2) |
+| Information only | Permeable planting, parking clear height (2.10 m under beams). Shown, not computed. | Plan 2556 cl. 14(2); MR 41 cl. 4 |
+| Environmental impact assessment | Needed at 80 units, or 4,000 m² of usable area. The definition of usable area is not verified, so the check measures total floor area, the strictest reading, and says so. | ONEP guidance |
+
+Other points in how designs are made:
+
+- Frontage is measured along the road, not along a zig-zag edge.
+- Parts of a floor narrower than 8 m (6 m for parking) are removed from designs.
 
 There are two rule sets, because the law switches the whole building from one to the other:
 
@@ -52,6 +58,18 @@ There are two rule sets, because the law switches the whole building from one to
 - **High-rise or extra-large:** 23 m or more, or 10,000 m² or more. 6 m setback on every boundary for the whole building, open space of 30% of the plot, road access tests.
 
 So there is no single allowed volume. The tool computes one envelope per rule set and shows one design for each. Which one to build is the developer's actual choice.
+
+## How unclear rules are read
+
+Some clauses can be read two ways. Each reading is a setting, and the default is listed here. The settings are in the interface and are in `src/core/readings.ts`.
+
+| Setting | Default | Stricter value | Looser value |
+|---|---|---|---|
+| Parking floors count toward FAR | On | On (default) | Off |
+| An office's own parking counts in its operating area | On | On (default) | Off |
+| 12 m front open space required even on a public road | Off (cl. 53 governs a building on the road) | On | Off (default) |
+
+When a setting is moved to a looser reading than its default, the interface shows a persistent notice, and every Pass reads "Passes under this reading". Start over, a new plot or an example plot resets the settings. Only the first two defaults are the stricter side. The front open space default is the looser reading. It does not raise the notice, because it is the default. Its rule carries the confidence tag "assumption". The reasons are in `DECISIONS.md` B12.
 
 ## How it works
 
@@ -148,36 +166,50 @@ research/      the research notes with sources
 Measured on the deployed build with a cold cache on a laptop:
 
 - First paint at 0.76 s (it was 5.2 s before the page shell and code splitting).
-- All scripts downloaded by 3.8 s. First surrounding buildings drawn at 3.1 s, all of them by 3.5 s.
+- All surrounding buildings drawn by 3.5 s (6.0 s before).
 - Layout shift 0.
-- Entry script 144 KB gzip. The map library (306 KB gzip), the 3D model code (132 KB gzip) and the drawing tool (33 KB gzip) are separate chunks.
-- A typical plot evaluates in about 16 ms.
+- Entry script 144 KB gzip. The map library, the 3D model code and the drawing tool are separate chunks.
+- Evaluation takes about 16 ms for a typical plot when measured on an idle laptop, before the second building form was added. The budget is under 40 ms. The timing budgets were not re-checked after that change; they are checked separately with `pnpm test:perf`.
+
+## Security
+
+Every response carries a content security policy, `X-Content-Type-Options: nosniff`, a referrer policy, `X-Frame-Options: SAMEORIGIN` and a permissions policy that denies camera, microphone and location (`public/_headers`). The content security policy was verified on the deployed site: no console violations, and fonts, basemap, buildings and the 3D model all load. Shared links are decoded as untrusted input.
+
+## Accessibility
+
+Done:
+
+- A keyboard path to a plot: "Enter corner coordinates".
+- Focus handling: focus no longer drops when a control unmounts.
+- Each rule switch is named by its rule.
+- Thai text is marked as Thai.
+- Forced-colours (high-contrast) support, including focus rings.
+- Contrast computed from the colour tokens: no text pair fails.
+
+Not verified: no screen-reader session and no forced-colours session was run. The findings came from reading the source. They were fixed, then spot-checked in a browser.
 
 ## Tests
 
-Counts from running the commands on 19 Nov 2026:
+Counts from running `pnpm test` on 20 Nov 2026: 85 files, 1,177 passed, 1 skipped (1,178 tests).
 
-| Command | Result |
-|---|---|
-| `pnpm test` | 1,173 passed, 1 skipped |
-| `pnpm test:perf` | 5 files, 20 passed (timing budgets for evaluation, building clipping and zone lookup) |
+Timing budgets (evaluation, building clipping, zone lookup) are checked separately with `pnpm test:perf`, run alone so other files do not compete for the CPU. They were not re-run for this update.
 
-Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone and building type, golden cases worked by hand, invariants, a break list (self-crossing, tiny, slivered and out-of-zone plots, exact thresholds), URL round-trips, and component tests for the panel and layout. There is no automated browser suite. The browser checks (drawing, edges, 3D, phone layout, shareable link, outside-zone message) were done by hand on the deployed build.
+Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone and building type, golden cases worked by hand, invariants, a break list (self-crossing, tiny, slivered and out-of-zone plots, exact thresholds), URL round-trips, and component tests for the panel, layout and focus. There is no automated browser suite. The browser checks (drawing, edges, 3D, phone layout, shareable link, outside-zone message) were done by hand on the deployed build.
 
 ## Known limits and things it gets wrong
 
 - One zone only (ย.7). Another zone is a data addition, not done.
-- It applies the 2013 plan. The 2026 draft renumbers the zones and is not implemented. The tool says which plan it applies.
-- Road width is the user's input. The pre-filled value is an estimate.
-- It cannot verify: that a road connects onward to a larger road, planned road widenings, airport and conservation height overlays, road-specific no-build strips. It errs strict where it can, and lists the rest as unchecked.
-- Still lenient or unchecked: the high-rise fire road and the planting beside it are tested by area only, not laid out. The front open space and its link to the road are measured on the outline (open ground straight out from each wall), not laid out; the facade length ignores U-shaped outlines. The MR 33 12 m strip from the road frontage is not laid out.
-- Front open space (BMA 2544 cl. 52(6) and 53): by default the 52(6) front open space is read as applying only to buildings not on a public road, and a building on one is judged on clause 53; this is our reading, not settled law (`DECISIONS.md` B12). The stricter reading is a setting, and it costs the example plots roughly 20 to 40% of low-rise floor area.
-- The EIA threshold is "usable area", whose definition was not verified. The tool compares it with the total floor area, the strictest measure, and says so.
-- The office rear walkway (cl. 52(7)) is applied by our reading that an office is a commercial building. It rarely changes a number, because the 3 m side and rear setback already exceeds it.
-- Several legal readings are ours, not official: the condo size test is per plot; the 30 m frontage reading of clause 36(4); the 6 m high-rise setback applies to a podium; parking counts toward floor area (a setting). See `DECISIONS.md` section B. Open items are listed in `research/01-regulations.md` section 9 (19 items).
-- Station distance uses approximate geometry. Results near 500 m are marked "verify on site".
-- Building heights are satellite-derived with about one storey of typical error (see above). Surrounding buildings exist only inside the study area.
+- It applies the 2013 plan. The 2026 draft renumbers the zones and is not implemented.
+- Road width is the user's input. The starting value is an estimate.
+- It cannot verify: that a road connects onward to another public road, planned road widenings, or airport and conservation height overlays.
+- The fire road, the planting and the front open space are checked by area or outline only. Their layout is not drawn.
+- Several legal readings are ours, not settled: see `DECISIONS.md` section B (including B12 on the front open space, B13 on the office rear walkway, B14 on the fire road and B16 on the EIA test). Open items are in `research/01-regulations.md` section 9.
+- Building heights are satellite-derived, with the evaluation numbers above. Surrounding buildings exist only in the study area.
 - Efficiency, floor-to-floor height, unit size and parking area per car are assumptions, not law. They are shown separately and are editable.
+- Station distance uses approximate geometry. Results near 500 m are marked "verify on site".
+- Browser checks were manual. There is no automated end-to-end suite.
+- The set-back form is not tried when the on-road design is already within 1% of the floor-area limit, so a set-back design up to 1% larger can be missed.
+- Plates only shrink evenly (with narrow parts cut). A narrow plot may get no high-rise where a shorter tower would fit.
 - Zoning data is third-party, with no stated licence.
 - This is not legal advice. Check any result with an architect and the local authority.
 

@@ -125,3 +125,31 @@ Rule for slips: if a checkpoint is missed by more than 90 minutes, cut from the 
 | No real-browser verification tool in this session | Now | Claude in Chrome not connected. Unit tests cover the core; visual checks wait for the extension |
 | Interface polish squeezed at the end | Medium | Polish has its own block at T+22, not the last hours |
 | Arpit's write-up time squeezed | Low | Notes collected in `LOG.md` throughout; doc skeleton ready by T+44 |
+
+## Progress against this plan
+
+Times from `LOG.md`. T is hours since the clock started (Thu 19 Nov 14:31 IST). The log ends at T+9h48 (Fri 20 Nov 00:19 IST); later work is not recorded here.
+
+| Plan checkpoint | Planned | Reached |
+|---|---|---|
+| Research, decisions, audit, scaffold, first deploy | T+1 | First deploy live at T+0h43 |
+| Unit tests green for setbacks and height plane | T+5 | Geometry core done at T+1h37 (102 tests); rules engine at T+1h19 (119 tests) |
+| First full loop deployed | T+8 | T+2h12 (605 tests) |
+| M1 to M11 working | T+12 | Review fixes deployed at T+3h06 (697 tests). Not seen in a browser until T+3h11 |
+| Real-browser pass | T+30 to 36 | First pass T+3h11, second T+4h31 |
+| S6 shareable link, S7 road width pre-fill | T+30 to 36 | T+4h31 |
+| S4 real building heights | T+30 to 36 | T+1h33 |
+| Performance work | T+30 to 36 | Cold load measured and fixed by T+5h08 |
+| Accessibility and second independent review | not planned | Fixes in at T+9h09; review findings fixed and replayed by T+9h48 |
+| Feature freeze, README, submission skeleton, Arpit's write-up, submit | T+40 to 46 | README and skeleton first written at T+5h08; this update after T+9h48. Not yet reached: Arpit's write-up and submission |
+
+Two things cost unplanned time:
+
+- A network outage of about three hours (T+5h19 to about T+8h20) killed the accessibility-fix agent, the second review and a browser check mid-call. Two agents were resumed from their transcripts.
+- Machine load of 12 to 20 from another project's video render stopped the timing budgets from being re-verified at T+9h48. They are checked separately with `pnpm test:perf`.
+
+Scope that moved:
+
+- Should-haves done: S4 (satellite heights, with error measured), S6 (shareable link), S7 (road width pre-fill). Present in the code but not recorded in the log: S3 (rai, ngan and wah conversion in `src/ui/format.ts`) and S5 (a slender tower variant in `src/core/designs/variants.ts`). S1 and S2 were not checked.
+- Stretch items X1 to X4 were not done.
+- Added, not planned: coordinate entry for keyboard users, accessibility fixes, security headers, the front open space reading with two lawful forms, fire road and planting as pass or fail.
