@@ -1,6 +1,12 @@
 /* The map stage, the site bar and legend over it, edge markers, and MapLibre's controls. */
 
-.map-root {
+/*
+ * MapLibre adds `.maplibregl-map { position: relative }` to this element, and its stylesheet
+ * now loads after ours (it ships with the lazily loaded map chunk). The doubled selector keeps
+ * this rule stronger whatever the load order, so the map always fills its area.
+ */
+.map-root,
+.map-root.maplibregl-map {
   position: absolute;
   inset: 0;
 }
