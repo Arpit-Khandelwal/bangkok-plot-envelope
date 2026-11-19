@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Map as MapLibreMap, Marker, NavigationControl, ScaleControl, setWorkerUrl } from 'maplibre-gl';
+import { Map as MapLibreMap, NavigationControl, ScaleControl, setWorkerUrl } from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from 'terra-draw';
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
-import type { EdgeSpec, LngLat } from '../core/types';
+import type { LngLat } from '../core/types';
 import { useAppStore } from '../state/store';
 import { addContextLayers, hideBuildingsInside } from './contextLayers';
-import { edgeLetter, edgeSummary } from './edgeLabels';
+import { createEdgeMarkers, plotKey, updateEdgeMarker, type EdgeMarker } from './edgeMarkers';
 import { ModelLayer } from './modelLayer';
 import type { ModelContent } from './modelLayer';
 
@@ -41,29 +41,6 @@ interface MapParts {
 
 function toOpenRing(closedRing: readonly (readonly number[])[]): LngLat[] {
   return closedRing.slice(0, -1).map((position) => [position[0] ?? 0, position[1] ?? 0] as const);
-}
-
-function midpoint(a: LngLat, b: LngLat): [number, number] {
-  return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-}
-
-function createEdgeChip(index: number, spec: EdgeSpec, isSelected: boolean, onSelect: () => void): HTMLButtonElement {
-  const chip = document.createElement('button');
-  chip.type = 'button';
-  chip.className = `edge-chip edge-chip--${spec.kind}${isSelected ? ' edge-chip--selected' : ''}`;
-  chip.setAttribute('aria-label', `Edge ${edgeLetter(index)}: ${edgeSummary(spec)}. Select to change.`);
-  const letter = document.createElement('span');
-  letter.className = 'edge-chip__letter';
-  letter.textContent = edgeLetter(index);
-  const summary = document.createElement('span');
-  summary.className = 'edge-chip__summary';
-  summary.textContent = edgeSummary(spec);
-  chip.append(letter, summary);
-  chip.addEventListener('click', (event) => {
-    event.stopPropagation();
-    onSelect();
-  });
-  return chip;
 }
 
 function createDraw(map: MapLibreMap): TerraDraw {
@@ -125,6 +102,7 @@ function fitToPlot(map: MapLibreMap, plot: readonly LngLat[]): void {
 export function MapView({ model, onDataError }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const partsRef = useRef<MapParts | null>(null);
+  const markersRef = useRef<readonly EdgeMarker[]>([]);
   const onDataErrorRef = useRef(onDataError);
   onDataErrorRef.current = onDataError;
 
@@ -199,18 +177,26 @@ export function MapView({ model, onDataError }: MapViewProps) {
     if (parts?.draw) syncDrawToStore(parts);
   }, [plotRevision]);
 
-  // Edge markers, one per plot edge.
+  // Edge markers are rebuilt only when the corners move, so a focused marker stays focused.
+  const cornersKey = plotKey(plot);
   useEffect(() => {
     const map = partsRef.current?.map;
-    if (!map || !plot) return;
-    const markers = plot.map((start, index) => {
-      const end = plot[(index + 1) % plot.length] ?? start;
-      const spec = edges[index] ?? { kind: 'neighbour' };
-      const chip = createEdgeChip(index, spec, selectedEdge === index, () => useAppStore.getState().selectEdge(index));
-      return new Marker({ element: chip, anchor: 'center' }).setLngLat(midpoint(start, end)).addTo(map);
-    });
-    return () => markers.forEach((marker) => marker.remove());
-  }, [plot, edges, selectedEdge]);
+    const corners = useAppStore.getState().plot;
+    if (!map || !corners) return;
+    const created = createEdgeMarkers(map, corners, (index) => useAppStore.getState().selectEdge(index));
+    markersRef.current = created;
+    return () => {
+      created.forEach((entry) => entry.marker.remove());
+      markersRef.current = [];
+    };
+  }, [cornersKey]);
+
+  // Edge settings and the selection only change the markers' text and classes.
+  useEffect(() => {
+    markersRef.current.forEach((entry, index) =>
+      updateEdgeMarker(entry, index, edges[index] ?? { kind: 'neighbour' }, selectedEdge === index),
+    );
+  }, [cornersKey, edges, selectedEdge]);
 
   // Existing buildings on the plot would poke through the proposal, so they are hidden.
   useEffect(() => {

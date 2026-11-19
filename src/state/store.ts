@@ -27,6 +27,8 @@ export interface AppState {
   readonly loadPreset: (preset: PlotPreset) => void;
   readonly clearPlot: () => void;
   readonly setEdge: (index: number, spec: EdgeSpec) => void;
+  /** Sets the width of every edge on one road in a single update. */
+  readonly setRoadWidth: (roadId: string, rowWidthM: number) => void;
   readonly selectEdge: (index: number | null) => void;
   readonly setBuildingType: (buildingType: BuildingType) => void;
   readonly setAssumption: <Key extends keyof Assumptions>(key: Key, value: Assumptions[Key]) => void;
@@ -73,12 +75,18 @@ export const useAppStore = create<AppState>((set) => ({
       edges: [],
       selectedEdge: null,
       selectedDesignId: null,
+      disabledRuleIds: [],
       plotRevision: state.plotRevision + 1,
     })),
 
   setEdge: (index, spec) =>
     set((state) => ({
       edges: state.edges.map((existing, edgeIndex) => (edgeIndex === index ? spec : existing)),
+    })),
+
+  setRoadWidth: (roadId, rowWidthM) =>
+    set((state) => ({
+      edges: state.edges.map((spec) => (spec.kind === 'road' && spec.roadId === roadId ? { ...spec, rowWidthM } : spec)),
     })),
 
   selectEdge: (index) => set({ selectedEdge: index }),

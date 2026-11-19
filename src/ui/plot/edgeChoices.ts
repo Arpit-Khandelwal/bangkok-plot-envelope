@@ -42,13 +42,3 @@ export function newRoadId(edges: readonly EdgeSpec[]): string {
 export function roadEdgeCount(edges: readonly EdgeSpec[]): number {
   return edges.filter(isRoad).length;
 }
-
-/**
- * Edge updates that set a road's width: every edge on the same road gets it, because
- * one road has one width.
- */
-export function roadWidthUpdates(edges: readonly EdgeSpec[], roadId: string, widthM: number): [number, EdgeSpec][] {
-  return edges.flatMap((spec, index): [number, EdgeSpec][] =>
-    isRoad(spec) && spec.roadId === roadId ? [[index, { ...spec, rowWidthM: widthM }]] : [],
-  );
-}

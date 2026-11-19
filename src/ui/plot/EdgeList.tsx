@@ -1,6 +1,6 @@
 import type { EdgeSpec } from '../../core/types';
 import { useAppStore } from '../../state/store';
-import { roadEdgeCount, roadWidthUpdates, specForKind } from './edgeChoices';
+import { roadEdgeCount, specForKind } from './edgeChoices';
 import type { EdgeKind } from './edgeChoices';
 import { EdgeRow } from './EdgeRow';
 
@@ -14,6 +14,7 @@ export function EdgeList({ edgeLengthsM }: EdgeListProps) {
   const edges = useAppStore((state) => state.edges);
   const selectedEdge = useAppStore((state) => state.selectedEdge);
   const setEdge = useAppStore((state) => state.setEdge);
+  const setRoadWidth = useAppStore((state) => state.setRoadWidth);
   const selectEdge = useAppStore((state) => state.selectEdge);
 
   const handleKindChange = (index: number, kind: EdgeKind): void => {
@@ -23,9 +24,7 @@ export function EdgeList({ edgeLengthsM }: EdgeListProps) {
 
   const handleSpecChange = (index: number, spec: EdgeSpec): void => setEdge(index, spec);
 
-  const handleRoadWidthChange = (roadId: string, widthM: number): void => {
-    roadWidthUpdates(useAppStore.getState().edges, roadId, widthM).forEach(([index, spec]) => setEdge(index, spec));
-  };
+  const handleRoadWidthChange = (roadId: string, widthM: number): void => setRoadWidth(roadId, widthM);
 
   return (
     <section className="panel-section" aria-labelledby="edges-heading">
