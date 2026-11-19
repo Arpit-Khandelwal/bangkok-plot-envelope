@@ -222,3 +222,163 @@
     flex-direction: column;
   }
 }
+
+/* ---------- Stacking over the map ----------
+ * MapLibre gives its control corners z-index 2. Isolating the map keeps those inside its own
+ * stacking context, so the site bar (and the examples menu that drops down from it) and the
+ * legend always paint above the zoom, scale and attribution controls.
+ */
+.map-root {
+  isolation: isolate;
+}
+
+@media (min-width: 900px) {
+  .app .map-overlay,
+  .app .site-bar {
+    z-index: 4;
+  }
+}
+
+/* ---------- Legend at the bottom centre (from 1280px) ----------
+ * Overrides the placement in global.css. The bottom margin clears the attribution line
+ * (10px margin + 24px compact button) with a gap; the side clearance keeps it off the zoom
+ * and scale controls, which sit side by side at the bottom left (about 150px wide).
+ */
+@media (min-width: 1280px) {
+  .app .legend {
+    margin-bottom: 48px;
+    max-width: min(540px, calc(100% - 2 * 160px));
+  }
+}
+
+/* ---------- Edge markers (created by src/map/edgeMarkers.ts) ----------
+ * `.edge-marker` is the element MapLibre positions: it carries MapLibre's own classes and an
+ * inline transform, so it is never styled beyond z-index here. The chip is the child button.
+ * By default a chip is a letter in a circle; roads and canals also show their summary; the
+ * selected, hovered and focused chips show the full label.
+ */
+.edge-marker {
+  z-index: 1;
+}
+
+.edge-marker--selected {
+  z-index: 2;
+}
+
+.edge-marker:hover,
+.edge-marker:focus-within {
+  z-index: 3;
+}
+
+.edge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 2px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: 600 var(--text-xs) / 1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(18 48 58 / 0.28);
+}
+
+.edge-tag__letter {
+  display: inline-grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.edge-tag__summary {
+  display: none;
+  padding-right: 8px;
+}
+
+.edge-tag--labelled .edge-tag__summary,
+.edge-tag--selected .edge-tag__summary,
+.edge-tag:hover .edge-tag__summary,
+.edge-tag:focus .edge-tag__summary {
+  display: inline;
+}
+
+.edge-tag:hover {
+  background: var(--paper);
+}
+
+/* Overrides the square global focus style: the ring follows the pill. */
+.edge-tag:focus-visible {
+  outline: none;
+  border-radius: 999px;
+  box-shadow: var(--focus-ring);
+}
+
+.edge-tag--road {
+  border-color: var(--road);
+}
+
+.edge-tag--road .edge-tag__letter {
+  background: var(--road);
+  color: var(--paper-raised);
+}
+
+.edge-tag--waterway {
+  border-color: var(--canal);
+}
+
+.edge-tag--waterway .edge-tag__letter {
+  background: color-mix(in srgb, var(--canal) 70%, var(--ink));
+  color: var(--paper-raised);
+}
+
+.edge-tag--selected,
+.edge-tag--selected:hover {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+
+.edge-tag--selected .edge-tag__letter {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+@media (pointer: coarse) {
+  .edge-tag {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 3px;
+  }
+
+  .edge-tag__letter {
+    width: 31px;
+    height: 31px;
+  }
+}
+
+/* ---------- Frame plot button, in the zoom control group ---------- */
+.maplibregl-ctrl-group button.map-frame-plot {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.maplibregl-ctrl-group button.map-frame-plot:hover {
+  background: var(--paper);
+}
+
+.maplibregl-ctrl-group button.map-frame-plot:disabled {
+  color: var(--rule);
+  cursor: not-allowed;
+}

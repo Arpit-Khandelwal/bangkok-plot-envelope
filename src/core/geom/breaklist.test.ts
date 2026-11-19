@@ -143,7 +143,8 @@ describe('break list', () => {
     expect(runSite(site, { roadSetback: 0.1, otherSetback: 0.1, cap: 10 }).footprint.length).toBeLessThanOrEqual(1);
   });
 
-  it('500-vertex circle-like plot runs in under 200 ms', () => {
+  // A timing budget only means something without other test files competing for the CPU: run with `pnpm test:perf`.
+  it.skipIf(!process.env.PERF_TESTS)('500-vertex circle-like plot runs in under 200 ms', () => {
     const n = 500;
     const plot: LngLat[] = [];
     for (let i = 0; i < n; i++) {

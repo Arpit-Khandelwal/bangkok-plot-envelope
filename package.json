@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:perf": "PERF_TESTS=1 vitest run --no-file-parallelism src/core/evaluate.perf.test.ts",
+    "test:perf": "PERF_TESTS=1 vitest run --no-file-parallelism perf src/core/geom/breaklist.test.ts",
     "test:watch": "vitest",
     "e2e": "playwright test",
     "deploy": "pnpm build && wrangler deploy"

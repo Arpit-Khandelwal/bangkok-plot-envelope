@@ -1,8 +1,7 @@
-import type { Feature, Geometry, Position } from 'geojson';
 import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { LngLat } from '../core/types';
 import { loadSiteData } from '../site/siteData';
-import type { BuildingProperties, SiteData } from '../site/siteData';
+import { buildingsOnPlot, indexFootprints, type BuildingFootprint } from './buildingsOnPlot';
 
 const BUILDINGS_SOURCE = 'context-buildings';
 const ZONES_SOURCE = 'plan-zones';
@@ -19,7 +18,10 @@ const CARD_ESTIMATED = '#e4e7e5';
 const STATION_INK = '#12303a';
 const LABEL_FONT = ['Noto Sans Regular'];
 
-let siteData: SiteData | null = null;
+/** Building footprints with bounding boxes, built once when the data arrives. */
+let footprints: readonly BuildingFootprint[] | null = null;
+/** The ids hidden last time, so an edit that hides the same buildings skips re-filtering. */
+let lastHiddenKey: string | null = null;
 
 const isEstimated: ExpressionSpecification = ['==', ['get', 'hSrc'], 'est'];
 
@@ -31,7 +33,8 @@ function buildingFilter(base: ExpressionSpecification, hiddenIndexes: readonly n
 /** Adds the real surroundings: buildings as extruded blocks, the plan zone outline, transit stations. */
 export async function addContextLayers(map: MapLibreMap): Promise<void> {
   const data = await loadSiteData();
-  siteData = data;
+  footprints = indexFootprints(data.buildings.features);
+  lastHiddenKey = null;
 
   map.addSource(ZONES_SOURCE, { type: 'geojson', data: data.zones });
   map.addLayer({
@@ -99,45 +102,35 @@ export async function addContextLayers(map: MapLibreMap): Promise<void> {
   });
 }
 
-function ringContains(ring: readonly LngLat[], point: Position): boolean {
-  const x = point[0] ?? 0;
-  const y = point[1] ?? 0;
-  let inside = false;
-  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
-    const a = ring[index];
-    const b = ring[previous];
-    if (!a || !b) continue;
-    const crosses = a[1] > y !== b[1] > y && x < ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1]) + a[0];
-    if (crosses) inside = !inside;
-  }
-  return inside;
-}
-
-function outerRing(geometry: Geometry): Position[] {
-  if (geometry.type === 'Polygon') return geometry.coordinates[0] ?? [];
-  if (geometry.type === 'MultiPolygon') return geometry.coordinates[0]?.[0] ?? [];
-  return [];
-}
-
-function centre(ring: readonly Position[]): Position {
-  const total = ring.reduce<[number, number]>((sum, point) => [sum[0] + (point[0] ?? 0), sum[1] + (point[1] ?? 0)], [0, 0]);
-  return [total[0] / Math.max(ring.length, 1), total[1] / Math.max(ring.length, 1)];
-}
-
-function standsOnPlot(feature: Feature<Geometry, BuildingProperties>, plot: readonly LngLat[]): boolean {
-  const ring = outerRing(feature.geometry);
-  return ring.length > 0 && ringContains(plot, centre(ring));
-}
-
 /**
- * Hides existing buildings whose centre is on the plot. A developer assessing the plot
- * assumes it will be cleared, and the old building would otherwise poke through the proposal.
+ * Hides existing buildings that stand on the plot (see `buildingsOnPlot` for the test). A
+ * developer assessing the plot assumes it will be cleared, and the old building would otherwise
+ * swallow the proposal.
  */
 export function hideBuildingsInside(map: MapLibreMap, plot: readonly LngLat[] | null): void {
-  if (!siteData || !map.getLayer(KNOWN_BUILDINGS_LAYER) || !map.getSource<GeoJSONSource>(BUILDINGS_SOURCE)) return;
-  const hidden = plot
-    ? siteData.buildings.features.filter((feature) => standsOnPlot(feature, plot)).map((feature) => feature.properties.i)
-    : [];
+  if (!footprints || !map.getLayer(KNOWN_BUILDINGS_LAYER) || !map.getSource<GeoJSONSource>(BUILDINGS_SOURCE)) return;
+  const hidden = plot ? buildingsOnPlot(footprints, plot).sort((a, b) => a - b) : [];
+  // Each setFilter re-filters the whole buildings source, and corner drags call this constantly.
+  const hiddenKey = hidden.join(',');
+  if (hiddenKey === lastHiddenKey) return;
+  lastHiddenKey = hiddenKey;
   map.setFilter(KNOWN_BUILDINGS_LAYER, buildingFilter(['!', isEstimated], hidden));
   map.setFilter(ESTIMATED_BUILDINGS_LAYER, buildingFilter(isEstimated, hidden));
+}
+
+/** Prefix of the layers terra-draw adds for the drawn outline and its handles. */
+const DRAW_LAYER_PREFIX = 'td-';
+
+/**
+ * Puts the given custom layer, then the drawing layers, above the building extrusions. The
+ * buildings load asynchronously and so are added last; left there they would paint over the
+ * proposal's see-through outline and over the drawn plot outline. Safe to call repeatedly.
+ */
+export function raiseOverlayLayers(map: MapLibreMap, modelLayerId: string): void {
+  if (map.getLayer(modelLayerId)) map.moveLayer(modelLayerId);
+  const drawLayerIds = (map.getStyle()?.layers ?? [])
+    .map((layer) => layer.id)
+    .filter((id) => id.startsWith(DRAW_LAYER_PREFIX));
+  // Moving each to the top in their existing order keeps their order relative to each other.
+  drawLayerIds.forEach((id) => map.moveLayer(id));
 }
