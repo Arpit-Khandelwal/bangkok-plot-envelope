@@ -39,3 +39,22 @@ Running record of key decisions and pivots. Times in IST. T+ is time since the c
 | 19 Nov 16:55 | 2h24 | Arpit named the product: **Buildable: Bangkok edition**. |
 | 19 Nov 17:00 | 2h29 | **Independent adversarial review (opus) found two cases where the tool said Pass on something our own research reads as illegal.** (1) On corner plots only the widest road limited height; the law allows that only when the building runs 60 m or less along the narrower road. A tower was 12.45 m over a soi's limit and passed, and the checklist could not catch it because it read the same list of planes the generator used. So the check was not independent after all. (2) Office operating area left out the office's own parking, weaker than the research's safe default. Also: frontage measured along a zig-zag instead of along the road, a 1 cm kink capping half a plot, rounding that contradicted verdicts, parking filling whole floors, and Bangkok's front open-space rule researched but never built. |
 | 19 Nov 17:00 | 2h29 | Lesson recorded: 605 passing tests said nothing about these, because the tests and the code shared one author's reading. The reviewer was given the code and the research but not my suspicions. Principle set for the fix: where the tool cannot verify a condition it must err strict, never lenient. Fixes sent to opus, test-first, using the reviewer's failing inputs as the tests. |
+| 19 Nov 17:37 | 3h06 | Review fixes verified and deployed (opus). 697 tests pass on three consecutive runs; 4 timing tests run separately, because the 500-corner budget failed only when 44 other test files competed for the CPU. Reviewer's failing cases now behave: no design exceeds any road's height limit; office 1,000 m2 cap now counts parking (653 + 347 m2); zig-zag frontage reads 11 m and fails; condo parking 68 for 68 required (was 249 for 25), which freed the low-rise from 2,999 to 8,085 m2 of housing. |
+| 19 Nov 17:37 | 3h06 | The agent declined one instruction with a reason: I asked for high-rise designs to come out lower after the height fix. On one plot the slender tower got taller, legally, by moving away from the soi to where the limit is 80 m. The instruction was wrong; the outcome is right. |
+| 19 Nov 17:38 | 3h07 | **Paused for a restart** so Claude in Chrome can connect. No agents running, dev server stopped, repo and live site in sync. Still lenient or unverified, to carry forward: the high-rise fire-road note says the road fits within the setback without checking; the front-access facade length ignores U-shaped outlines; onward road connection is not checked. |
+
+## State at pause (T+3h07, Thu 19 Nov 17:38 IST)
+
+**Live:** https://bangkok-plot-envelope.arpit-khandelwal.workers.dev (matches `main`).
+
+**Done:** research, decisions, plan; geometry core; rules engine (condo, office); site data with measured building heights; zone and station lookup; interface; pipeline with designs and checks; eight example plots; independent review and its fixes.
+
+**Never yet seen in a browser:** everything in the interface since the first drawing spike.
+
+**Next, in order**
+1. Visual pass in Chrome on the live site: 1440, 1280, 1024, 900, 768, 375 and 320 px. Check the 3D layer lines up with the map and is hidden correctly behind buildings; edge markers; section drawing; legend and site bar overlap between 900 and 1,280 px; tables at phone width.
+2. Walk each of the eight example plots and confirm the story each is meant to tell appears on screen.
+3. Break attempts by hand: self-crossing plot, tiny plot, plot outside zone ย.7, plot across the zone boundary, no road edge, every rule switched off.
+4. Fix what the pass finds (delegate), redeploy.
+5. Should-haves still open: shareable link (S6), road width pre-filled from road data (S7), envelope fill shown in 3D (S1).
+6. Before T+40: README, submission doc skeleton, rename decision for the URL and repo.
