@@ -9,3 +9,6 @@ dist/
 playwright-report/
 test-results/
 .playwright-mcp/
+__pycache__/
+*.pyc
+public/data/buildings.geojson
