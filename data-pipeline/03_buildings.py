@@ -1,4 +1,5 @@
-"""Overture buildings for a bbox -> public/data/buildings.geojson with h / hSrc / cls.
+"""Overture buildings for a bbox -> public/data/buildings.geojson with h / hSrc / cls (heuristic heights),
+plus work/buildings_base.geojson (the same plus footprint area) for 07_sat_heights.py.
 
 usage: python -I 03_buildings.py [--bbox minLon,minLat,maxLon,maxLat] [--release 2026-11-18.0] [--refresh]
 """
@@ -99,7 +100,7 @@ def main():
     stats["cell_counts_used_for_calibration"] = {f"{g}|bin{b}": n for (g, b), n in sorted(est.cell_n.items())}
     stats["calibrated_levels_table"] = {g: [round(v, 2) for v in row] for g, row in est.table.items()}
 
-    out_feats, cnt = [], collections.Counter()
+    out_feats, base_feats, cnt = [], [], collections.Counter()
     for g, ug, area, hv, src, cls in recs:
         cls_raw = cls
         if hv is None:
@@ -115,9 +116,13 @@ def main():
         props = {"h": round(hv, 1), "hSrc": src}
         if cls:
             props["cls"] = cls
-        out_feats.append({"type": "Feature", "properties": props, "geometry": r6(mapping(g))})
+        geom = r6(mapping(g))
+        out_feats.append({"type": "Feature", "properties": props, "geometry": geom})
+        # intermediate for 07_sat_heights.py: keeps the heuristic value, class and footprint area (UTM m2)
+        base_feats.append({"type": "Feature", "properties": {**props, "area": round(area, 1)}, "geometry": geom})
         cnt[src] += 1
 
+    write_json(work / "buildings_base.geojson", {"type": "FeatureCollection", "features": base_feats})
     nbytes = write_json(out / "buildings.geojson", {"type": "FeatureCollection", "features": out_feats})
     n = len(out_feats)
     summary = {"bbox": bbox, "release": release_of(raw), "count": n, "bytes": nbytes, "dropped": dict(drop),

@@ -3,8 +3,11 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 export interface BuildingProperties {
   /** Height in metres. */
   readonly h: number;
-  /** Where the height came from: a tagged height, a storey count, or our estimate. */
-  readonly hSrc: 'height' | 'levels' | 'est';
+  /**
+   * Where the height came from: a tagged height, a storey count, a satellite-derived
+   * measurement (Google Open Buildings 2.5D), or our estimate where none of those exist.
+   */
+  readonly hSrc: 'height' | 'levels' | 'sat' | 'est';
   /** Index assigned on load, used to hide buildings that stand on the plot. */
   readonly i: number;
 }
@@ -30,8 +33,9 @@ export interface SiteData {
   readonly stations: FeatureCollection<Geometry, StationProperties>;
 }
 
+const BUILDINGS_DIRECTORY = '/data/buildings';
+
 const DATA_FILES = {
-  buildings: '/data/buildings.geojson',
   zones: '/data/zones.geojson',
   stations: '/data/stations.geojson',
 } as const;
@@ -44,6 +48,20 @@ async function fetchCollection(url: string): Promise<FeatureCollection> {
     throw new Error(`${url} is not a GeoJSON FeatureCollection`);
   }
   return body as FeatureCollection;
+}
+
+interface BuildingsIndex {
+  readonly parts: readonly { readonly file: string }[];
+}
+
+/** Buildings are baked as several spatial chunks so no file is large. They load in parallel. */
+async function fetchBuildings(): Promise<FeatureCollection> {
+  const response = await fetch(`${BUILDINGS_DIRECTORY}/index.json`);
+  if (!response.ok) throw new Error(`buildings index returned ${response.status}`);
+  const index = (await response.json()) as BuildingsIndex;
+  if (!Array.isArray(index.parts)) throw new Error('buildings index has no parts list');
+  const parts = await Promise.all(index.parts.map((part) => fetchCollection(`${BUILDINGS_DIRECTORY}/${part.file}`)));
+  return { type: 'FeatureCollection', features: parts.flatMap((part) => part.features) };
 }
 
 function withIndex(collection: FeatureCollection): FeatureCollection<Geometry, BuildingProperties> {
@@ -64,7 +82,7 @@ let cached: Promise<SiteData> | null = null;
 export function loadSiteData(): Promise<SiteData> {
   if (!cached) {
     cached = Promise.all([
-      fetchCollection(DATA_FILES.buildings),
+      fetchBuildings(),
       fetchCollection(DATA_FILES.zones),
       fetchCollection(DATA_FILES.stations),
     ])
