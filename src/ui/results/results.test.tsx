@@ -113,7 +113,8 @@ describe('RuleList', () => {
     const user = userEvent.setup();
     const rules = sampleEvaluation.regimes.lowRise.rules.rules;
     render(<RuleList regime="lowRise" rules={rules} />);
-    const switches = screen.getAllByRole('switch', { name: 'Apply this rule' });
+    const switches = screen.getAllByRole('switch', { name: /^Apply this rule / });
+    expect(screen.getByRole('switch', { name: `Apply this rule ${rules[0]?.title}` })).toBeTruthy();
     expect(switches.every((element) => (element as HTMLInputElement).checked)).toBe(true);
     await user.click(switches[0] as HTMLElement);
     expect(useAppStore.getState().disabledRuleIds).toEqual([rules[0]?.id]);

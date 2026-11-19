@@ -49,7 +49,7 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
       <h2 id="schedule-heading" className="panel-section__title">
         Area schedule
       </h2>
-      <div className="schedule-scroll">
+      <div className="schedule-scroll" tabIndex={0} role="region" aria-label="Area schedule, scrolls sideways">
       <table className="schedule">
         <caption className="visually-hidden">Floor areas of {design.name}, top floor first</caption>
         <thead>

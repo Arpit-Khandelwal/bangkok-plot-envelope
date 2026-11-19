@@ -72,6 +72,9 @@
 }
 
 .citations__link {
+  display: inline-block;
+  min-height: 24px;
+  padding-block: 3px;
   color: var(--ink-soft);
 }
 

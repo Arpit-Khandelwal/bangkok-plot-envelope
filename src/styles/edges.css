@@ -132,6 +132,9 @@
 
 .disclosure__summary .panel-section__title {
   margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--leading-tight);
 }
 
 .disclosure__body {

@@ -15,7 +15,10 @@ export interface MapLoadState {
 }
 
 export interface MapStatusMessage {
+  /** What a screen reader announces. It stays the same while a count in `detail` changes. */
   readonly text: string;
+  /** A changing count, shown but not announced. */
+  readonly detail?: string;
   /** `busy` shows the activity mark; `error` offers "Try again"; `note` is a quiet standing remark. */
   readonly kind: 'busy' | 'error' | 'note';
 }
@@ -24,7 +27,7 @@ export function mapStatusMessage(state: MapLoadState): MapStatusMessage | null {
   const { buildings } = state;
   if (!state.mapLoaded) return { text: 'Loading map', kind: 'busy' };
   if (!buildings.settled) {
-    return { text: `Loading surrounding buildings (${buildings.loaded} of ${buildings.total})`, kind: 'busy' };
+    return { text: 'Loading surrounding buildings', detail: `(${buildings.loaded} of ${buildings.total})`, kind: 'busy' };
   }
   if (buildings.failed > 0) {
     const text =

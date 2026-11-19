@@ -23,6 +23,16 @@ describe('MapStatus', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it('announces a static text and shows the count in an aria-hidden sibling', () => {
+    const { container } = render(
+      <MapStatus message={{ text: 'Loading surrounding buildings', detail: '(3 of 11)', kind: 'busy' }} onRetry={() => undefined} />,
+    );
+    const detail = container.querySelector('.map-status__detail');
+    expect(detail?.getAttribute('aria-hidden')).toBe('true');
+    expect(detail?.textContent).toBe('(3 of 11)');
+    expect(screen.getByText('Loading surrounding buildings').getAttribute('aria-hidden')).toBeNull();
+  });
+
   it('offers "Try again" on an error', async () => {
     const onRetry = vi.fn();
     render(<MapStatus message={{ text: 'Surrounding buildings could not be loaded.', kind: 'error' }} onRetry={onRetry} />);

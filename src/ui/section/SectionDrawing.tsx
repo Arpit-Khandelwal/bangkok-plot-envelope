@@ -2,9 +2,8 @@ import { useId } from 'react';
 import type { SectionProfile } from '../../core/types';
 import { formatMetres, formatNumber } from '../format';
 import { Dimension } from './Dimension';
-import { clampLabelX, layoutSection, placeLimitLabel, SECTION_MARGIN_X } from './sectionGeometry';
+import { clampLabelX, estimateTextWidth, layoutSection, placeLimitLabel, SECTION_LABEL_SIZE, SECTION_MARGIN_X } from './sectionGeometry';
 
-const LABEL_SIZE = 11;
 const ROAD_ROW = 16;
 const SETBACK_ROW = 38;
 const SCALE_BAR_M = 10;
@@ -43,6 +42,8 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
   const capLabel = profile.roofDeckCapM === null ? '' : `${formatNumber(profile.roofDeckCapM, 1)} m: High-rise rules start here`;
   const limitLabel = 'Height limit';
   const limitPlacement = placeLimitLabel(layout, profile.roofDeckCapM, limitLabel);
+  // Start-anchored text must not run past the right edge of the drawing.
+  const setbackLabelX = Math.min(toX(0), width - SECTION_MARGIN_X - estimateTextWidth(setbackLabel, SECTION_LABEL_SIZE));
   const scaleBarEnd = width - SECTION_MARGIN_X;
   const scaleBarStart = scaleBarEnd - SCALE_BAR_M * layout.scale;
 
@@ -104,10 +105,10 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
         x2={toX(0)}
         y={groundY + ROAD_ROW}
         label={roadLabel}
-        labelX={clampLabelX(toX(-profile.rowWidthM / 2), roadLabel, LABEL_SIZE, width)}
+        labelX={clampLabelX(toX(-profile.rowWidthM / 2), roadLabel, SECTION_LABEL_SIZE, width)}
         anchor="middle"
       />
-      <Dimension x1={toX(0)} x2={toX(profile.setbackM)} y={groundY + SETBACK_ROW} label={setbackLabel} labelX={toX(0)} anchor="start" />
+      <Dimension x1={toX(0)} x2={toX(profile.setbackM)} y={groundY + SETBACK_ROW} label={setbackLabel} labelX={setbackLabelX} anchor="start" />
 
       <g className="section__dimension">
         <line x1={scaleBarStart} y1={groundY + ROAD_ROW} x2={scaleBarEnd} y2={groundY + ROAD_ROW} />

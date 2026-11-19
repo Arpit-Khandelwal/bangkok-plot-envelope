@@ -22,6 +22,7 @@ export function NumberField({ label, hint, value, unit, min, max, maxDecimals = 
   const inputId = useId();
   const hintId = useId();
   const errorId = useId();
+  const unitId = useId();
   const [draft, setDraft] = useState(() => formatNumber(value, maxDecimals).replace(/,/g, ''));
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +47,7 @@ export function NumberField({ label, hint, value, unit, min, max, maxDecimals = 
     if (parsed.ok && parsed.value !== value) onCommit(parsed.value);
   };
 
-  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined;
+  const describedBy = [hint ? hintId : null, unit ? unitId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className="number-field">
@@ -74,10 +75,10 @@ export function NumberField({ label, hint, value, unit, min, max, maxDecimals = 
             if (event.key === 'Enter') commit();
           }}
         />
-        {unit ? <span className="number-field__unit">{unit}</span> : null}
+        {unit ? <span id={unitId} className="number-field__unit">{unit}</span> : null}
       </span>
       {error ? (
-        <p id={errorId} className="number-field__error" role="alert">
+        <p id={errorId} className="number-field__error" aria-live="polite">
           {error}
         </p>
       ) : null}

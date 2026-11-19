@@ -1,18 +1,28 @@
 import type { ZoneLookup } from '../../site/context';
-import { COVERED_ZONE, listZoneCodes } from './zoneCoverage';
+import type { ReactNode } from 'react';
+import { ZoneCodes } from './ZoneCodes';
+import { COVERED_ZONE } from './zoneCoverage';
 
 export interface ZoneNoticeProps {
   readonly lookup: ZoneLookup;
 }
 
-function foundSentence(lookup: ZoneLookup): string {
+function foundSentence(lookup: ZoneLookup): ReactNode {
   switch (lookup.status) {
     case 'outside':
       return 'This plot is outside every zone on the 2013 city plan map we hold.';
     case 'straddles':
-      return `This plot crosses a zone boundary: it touches ${listZoneCodes(lookup.zones)}.`;
+      return (
+        <>
+          This plot crosses a zone boundary: it touches <ZoneCodes zones={lookup.zones} />.
+        </>
+      );
     case 'single':
-      return `This plot is in zone ${lookup.zone.code} of the B.E. ${lookup.zone.planVersion} plan.`;
+      return (
+        <>
+          This plot is in zone <ZoneCodes zones={[lookup.zone]} /> of the B.E. {lookup.zone.planVersion} plan.
+        </>
+      );
   }
 }
 

@@ -70,7 +70,7 @@ export function Panel({ view, design, mapError }: PanelProps) {
   const measure = plot ? measurePlot(plot, site) : null;
 
   return (
-    <aside ref={panelRef} className="panel" aria-label="Plot and results">
+    <main ref={panelRef} className="panel" aria-label="Plot and results">
       {view.dataStatus.state === 'error' ? (
         <p className="notice notice--fail" role="alert">
           The zone map could not be loaded ({view.dataStatus.message}), so the zone cannot be checked and no verdict is given.
@@ -96,6 +96,6 @@ export function Panel({ view, design, mapError }: PanelProps) {
         <EmptyState />
       )}
       <Sources />
-    </aside>
+    </main>
   );
 }

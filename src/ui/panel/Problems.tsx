@@ -1,4 +1,5 @@
 import type { Problem } from '../../core/types';
+import { ThaiText } from '../common/ThaiText';
 
 /**
  * While the edge list is asking for a road, the same direction is already on screen above
@@ -23,7 +24,7 @@ export function Problems({ problems }: ProblemsProps) {
           className={`notice ${problem.blocking ? 'notice--fail' : 'notice--warn'}`}
           role={problem.blocking ? 'alert' : undefined}
         >
-          {problem.message}
+          <ThaiText>{problem.message}</ThaiText>
         </li>
       ))}
     </ul>

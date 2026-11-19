@@ -54,7 +54,6 @@
   grid-auto-columns: minmax(0, 1fr);
   border: 1px solid var(--ink);
   border-radius: var(--radius);
-  overflow: hidden;
   max-width: 100%;
 }
 
@@ -82,13 +81,23 @@
   justify-content: center;
   width: 100%;
   min-height: var(--control-height);
-  padding: 0 var(--space-3);
+  padding: var(--space-1) var(--space-3);
   background: var(--paper-raised);
   font-size: var(--text-sm);
   font-weight: 500;
   text-align: center;
-  white-space: nowrap;
+  /* Labels wrap at large text sizes instead of being clipped. */
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+
+.segmented__option:first-child .segmented__label {
+  border-radius: 2px 0 0 2px;
+}
+
+.segmented__option:last-child .segmented__label {
+  border-radius: 0 2px 2px 0;
 }
 
 .segmented__short {
@@ -109,7 +118,7 @@
 }
 
 .segmented--compact .segmented__label {
-  padding: 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
 }
 
@@ -270,4 +279,42 @@
 .copy-link__fallback {
   width: 12rem;
   max-width: 100%;
+}
+
+/* ---------- Corner coordinates form ---------- */
+.corner-form {
+  margin-top: var(--space-3);
+}
+
+.corner-form__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.corner-form__body {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding-top: var(--space-2);
+}
+
+.corner-form__field {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: var(--text-sm) / 1.4 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+.corner-form__field[aria-invalid='true'] {
+  border-color: var(--fail);
+  border-width: 2px;
+  background: var(--fail-tint);
 }

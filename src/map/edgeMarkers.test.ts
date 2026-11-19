@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { createEdgeMarker, edgeMarkerLabel, plotKey, setEdgeMarkerOffsets, updateEdgeMarker } from './edgeMarkers';
+import { createEdgeMarker, edgeMarkerLabel, focusEdgeControl, plotKey, setEdgeMarkerOffsets, updateEdgeMarker } from './edgeMarkers';
 
 const ROAD = { kind: 'road', roadId: 'r1', rowWidthM: 8 } as const;
 
@@ -86,5 +86,43 @@ describe('plotKey', () => {
   it('is empty without a plot and changes when a corner moves', () => {
     expect(plotKey(null)).toBe('');
     expect(plotKey([[1, 2], [3, 4]])).not.toBe(plotKey([[1, 2], [3, 5]]));
+  });
+});
+
+describe('edge marker accessibility', () => {
+  it('exposes the selected state with aria-pressed', () => {
+    const entry = createEdgeMarker([100.6, 13.7], () => undefined);
+    expect(entry.chip.getAttribute('aria-pressed')).toBe('false');
+    updateEdgeMarker(entry, 0, ROAD, true);
+    expect(entry.chip.getAttribute('aria-pressed')).toBe('true');
+    updateEdgeMarker(entry, 0, ROAD, false);
+    expect(entry.chip.getAttribute('aria-pressed')).toBe('false');
+  });
+});
+
+describe('focusEdgeControl', () => {
+  function radios(index: number, checked: number): HTMLElement {
+    const host = document.createElement('div');
+    ['neighbour', 'road', 'waterway'].forEach((value, i) => {
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = `edge-kind-${index}`;
+      input.value = value;
+      input.checked = i === checked;
+      host.append(input);
+    });
+    document.body.append(host);
+    return host;
+  }
+
+  it('focuses the checked radio of that edge', () => {
+    const host = radios(2, 1);
+    focusEdgeControl(2);
+    expect((document.activeElement as HTMLInputElement).value).toBe('road');
+    host.remove();
+  });
+
+  it('does nothing when the edge has no controls', () => {
+    expect(() => focusEdgeControl(9)).not.toThrow();
   });
 });

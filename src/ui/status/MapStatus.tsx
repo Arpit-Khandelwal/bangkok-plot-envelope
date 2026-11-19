@@ -16,6 +16,11 @@ export function MapStatus({ message, onRetry }: MapStatusProps) {
         <p className="map-status__line">
           {message.kind === 'busy' ? <span className="map-status__mark" aria-hidden="true" /> : null}
           <span>{message.text}</span>
+          {message.detail ? (
+            <span className="map-status__detail" aria-hidden="true">
+              {message.detail}
+            </span>
+          ) : null}
           {message.kind === 'error' ? (
             <button type="button" className="map-status__retry" onClick={onRetry}>
               Try again

@@ -44,6 +44,8 @@ export function updateEdgeMarker(entry: EdgeMarker, index: number, spec: EdgeSpe
   // Roads and canals keep their summary visible; a neighbour edge shows only its letter.
   chip.classList.toggle('edge-tag--labelled', spec.kind !== 'neighbour');
   chip.classList.toggle('edge-tag--selected', isSelected);
+  const pressed = String(isSelected);
+  if (chip.getAttribute('aria-pressed') !== pressed) chip.setAttribute('aria-pressed', pressed);
   root.classList.toggle('edge-marker--selected', isSelected);
 
   const label = edgeMarkerLabel(index, spec);
@@ -61,6 +63,7 @@ export function createEdgeMarker(position: LngLat, onSelect: () => void): EdgeMa
   const chip = document.createElement('button');
   chip.type = 'button';
   chip.classList.add('edge-tag');
+  chip.setAttribute('aria-pressed', 'false');
   const letter = document.createElement('span');
   letter.classList.add('edge-tag__letter');
   letter.setAttribute('aria-hidden', 'true');
@@ -77,6 +80,16 @@ export function createEdgeMarker(position: LngLat, onSelect: () => void): EdgeMa
   return { marker, root, chip, letter, summary };
 }
 
+/**
+ * Moves focus to an edge's controls in the panel: the checked kind radio, or the first one.
+ * The marker says "Select to change", so activating it should land where the change is made.
+ */
+export function focusEdgeControl(index: number, root: ParentNode = document): void {
+  const radios = root.querySelectorAll<HTMLInputElement>(`input[name="edge-kind-${index}"]`);
+  const target = [...radios].find((radio) => radio.checked) ?? radios[0];
+  target?.focus();
+}
+
 /** One marker per plot edge, at the edge midpoint. Fill them in with `updateEdgeMarker`. */
 export function createEdgeMarkers(
   map: MapLibreMap,
@@ -85,7 +98,10 @@ export function createEdgeMarkers(
 ): readonly EdgeMarker[] {
   return plot.map((start, index) => {
     const end = plot[(index + 1) % plot.length] ?? start;
-    const entry = createEdgeMarker(midpoint(start, end), () => onSelect(index));
+    const entry = createEdgeMarker(midpoint(start, end), () => {
+      onSelect(index);
+      focusEdgeControl(index);
+    });
     entry.marker.addTo(map);
     return entry;
   });

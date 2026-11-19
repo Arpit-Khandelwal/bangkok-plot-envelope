@@ -30,7 +30,7 @@ export function RuleList({ regime, rules }: RuleListProps) {
 
   return (
     <section className="panel-section" aria-labelledby="rules-heading">
-      <h2 id="rules-heading" className="panel-section__title">
+      <h2 id="rules-heading" className="panel-section__title" tabIndex={-1}>
         {REGIME_NAMES[regime]}
       </h2>
       <p className="panel-section__lede">

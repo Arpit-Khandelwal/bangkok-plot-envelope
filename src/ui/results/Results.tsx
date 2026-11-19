@@ -8,6 +8,7 @@ import { AreaSchedule } from './AreaSchedule';
 import { Checklist } from './Checklist';
 import { DesignFigures } from './DesignFigures';
 import { DesignSwitcher } from './DesignSwitcher';
+import { ResultsAnnouncer } from './ResultsAnnouncer';
 
 export interface ResultsProps {
   readonly evaluation: OkEvaluation;
@@ -33,6 +34,7 @@ export function Results({ evaluation, design }: ResultsProps) {
   return (
     <>
       <Problems problems={notes} />
+      <ResultsAnnouncer design={design} />
       <DesignSwitcher designs={evaluation.designs} selectedId={design.id} />
       <div className="design-detail" key={design.id}>
         <DesignFigures design={design} regime={regime} plotAreaM2={evaluation.site.areaM2} />

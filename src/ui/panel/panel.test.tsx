@@ -67,7 +67,9 @@ describe('Panel', () => {
       zoneLookup: { status: 'straddles', zones: [{ code: 'ย.6', planVersion: '2556' }, { code: 'ย.7', planVersion: '2556' }] },
     });
     render(<Panel view={straddles} design={null} mapError={null} />);
-    expect(screen.getByText('This plot crosses a zone boundary: it touches ย.6 and ย.7.')).toBeTruthy();
+    const sentence = screen.getByText(/This plot crosses a zone boundary/);
+    expect(sentence.textContent).toBe('This plot crosses a zone boundary: it touches ย.6 and ย.7.');
+    expect([...sentence.querySelectorAll('[lang="th"]')].map((node) => node.textContent)).toEqual(['ย.6', 'ย.7']);
   });
 
   it('shows blocking problems in place of results', () => {

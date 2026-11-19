@@ -1,4 +1,5 @@
 import { useAppStore } from '../../state/store';
+import { focusSoon, RULES_HEADING_SELECTOR } from '../focus';
 import { plural } from '../format';
 
 /** Persistent warning while any rule is switched off. */
@@ -15,7 +16,10 @@ export function WhatIfNotice() {
         </strong>{' '}
         This is a what-if view, not a compliance result.
       </p>
-      <button type="button" className="button" onClick={enableAllRules}>
+      <button type="button" className="button" onClick={() => {
+          enableAllRules();
+          focusSoon(RULES_HEADING_SELECTOR);
+        }}>
         Switch all rules back on
       </button>
     </aside>

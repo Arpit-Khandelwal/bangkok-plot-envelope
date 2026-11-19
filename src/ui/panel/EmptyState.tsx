@@ -1,3 +1,5 @@
+import { CornerForm } from './CornerForm';
+
 /** Directions shown before a plot is drawn. */
 export function EmptyState() {
   return (
@@ -10,6 +12,8 @@ export function EmptyState() {
         <li>Click the first corner again to close it.</li>
         <li>Say which side faces the road, and how wide the road is.</li>
       </ol>
+      <p className="empty__alternative">No mouse? Choose an example plot, open a shared link, or enter the corner coordinates below.</p>
+      <CornerForm />
       <p className="empty__after">The allowed space, two concept designs and a checklist against each rule appear here.</p>
     </section>
   );

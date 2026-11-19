@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import type { ZoneLookup } from '../../site/context';
 import type { DataStatus } from '../../state/useEvaluation';
-import { COVERED_PLAN_LABEL, COVERED_ZONE, COVERED_ZONE_NAME, isOutsideCoverage, listZoneCodes } from '../zone/zoneCoverage';
+import { ZoneCodes } from '../zone/ZoneCodes';
+import { COVERED_PLAN_LABEL, COVERED_ZONE, COVERED_ZONE_NAME, isOutsideCoverage } from '../zone/zoneCoverage';
 
 export interface ZoneChipProps {
   readonly lookup: ZoneLookup | null;
@@ -8,14 +10,22 @@ export interface ZoneChipProps {
   readonly dataStatus: DataStatus;
 }
 
-function foundCodes(lookup: ZoneLookup): string {
+function foundCodes(lookup: ZoneLookup): ReactNode {
   switch (lookup.status) {
     case 'outside':
       return 'No zone found';
     case 'straddles':
-      return `Crosses ${listZoneCodes(lookup.zones)}`;
+      return (
+        <>
+          Crosses <ZoneCodes zones={lookup.zones} />
+        </>
+      );
     case 'single':
-      return `Zone ${lookup.zone.code}`;
+      return (
+        <>
+          Zone <ZoneCodes zones={[lookup.zone]} />
+        </>
+      );
   }
 }
 

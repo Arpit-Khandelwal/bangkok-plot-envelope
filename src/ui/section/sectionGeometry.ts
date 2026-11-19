@@ -89,9 +89,12 @@ export function clampLabelX(x: number, text: string, fontSize: number, width: nu
 export const SECTION_MARGIN_X = MARGIN_X;
 
 /** Vertical room, in SVG units, that two labels need between their centres not to overlap. */
-export const LABEL_CLEARANCE = 14;
-const LIMIT_LABEL_SIZE = 11;
-const LIMIT_LABEL_OFFSET = 9;
+/** Label size in SVG units. At 400 units across, 13 renders at about 9.5px on a 300px column. */
+export const SECTION_LABEL_SIZE = 13;
+/** Half the height of the "Height limit" label box plus half a cap label, with a little air. */
+export const LABEL_CLEARANCE = 18;
+const LIMIT_LABEL_SIZE = SECTION_LABEL_SIZE;
+const LIMIT_LABEL_OFFSET = 10;
 const LIMIT_LABEL_PAD = 3;
 
 export interface LimitLabelPlacement {

@@ -20,7 +20,10 @@ describe('EdgeList', () => {
     await user.clear(field);
     await user.type(field, '12m');
     await user.tab();
-    expect(screen.getByRole('alert').textContent).toContain('digits only');
+    const error = document.querySelector('.number-field__error');
+    expect(error?.getAttribute('aria-live')).toBe('polite');
+    expect(error?.textContent).toContain('digits only');
+    expect(field.getAttribute('aria-describedby')).toContain(error?.id ?? 'missing');
     expect(field.getAttribute('aria-invalid')).toBe('true');
     expect(useAppStore.getState().edges[0]).toEqual(SAMPLE_EDGES[0]);
   });
@@ -32,7 +35,7 @@ describe('EdgeList', () => {
     await user.clear(field);
     await user.type(field, '150');
     await user.tab();
-    expect(screen.getByRole('alert').textContent).toBe('Must be at most 100 m.');
+    expect(document.querySelector('.number-field__error')?.textContent).toBe('Must be at most 100 m.');
     expect(useAppStore.getState().edges[0]).toEqual(SAMPLE_EDGES[0]);
   });
 

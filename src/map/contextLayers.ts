@@ -16,6 +16,8 @@ const STATIONS_LAYER = 'transit-stations';
 const COVERED_ZONE = 'ย.7';
 /** The plan's own colour for medium-density residential zones. */
 const ZONE_ORANGE = '#e8862e';
+/** Darker than the fill so the dashed zone edge keeps 3:1 contrast against the basemap; matches the legend. */
+const ZONE_LINE = '#b45a00';
 const CARD_KNOWN = '#d3d8d6';
 const CARD_ESTIMATED = '#e4e7e5';
 const STATION_INK = '#12303a';
@@ -189,7 +191,7 @@ export function addZoneAndStationLayers(map: MapLibreMap, data: SiteData): void 
       type: 'line',
       source: ZONES_SOURCE,
       filter: ['==', ['get', 'zone'], COVERED_ZONE],
-      paint: { 'line-color': ZONE_ORANGE, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+      paint: { 'line-color': ZONE_LINE, 'line-width': 1.5, 'line-dasharray': [3, 2] },
     },
     zonesBefore,
   );

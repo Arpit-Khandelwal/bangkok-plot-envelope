@@ -23,6 +23,12 @@
   margin-bottom: var(--space-3);
 }
 
+.empty__alternative {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
 .panel-section__lede {
   margin-bottom: var(--space-4);
   font-size: var(--text-sm);

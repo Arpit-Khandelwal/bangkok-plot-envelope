@@ -1,5 +1,6 @@
 import type { NearestStation } from '../../site/context';
 import { formatM2, formatMetres, formatRaiNganWah } from '../format';
+import { CornerForm } from '../panel/CornerForm';
 import type { PlotMeasure } from './plotMeasure';
 
 export interface PlotSummaryProps {
@@ -17,7 +18,7 @@ function stationText(station: NearestStation): string {
 export function PlotSummary({ measure, station }: PlotSummaryProps) {
   return (
     <section className="panel-section" aria-labelledby="plot-heading">
-      <h2 id="plot-heading" className="panel-section__title">
+      <h2 id="plot-heading" className="panel-section__title" tabIndex={-1}>
         Your plot
       </h2>
       <dl className="facts">
@@ -37,6 +38,7 @@ export function PlotSummary({ measure, station }: PlotSummaryProps) {
           <dd>{station ? stationText(station) : 'Not known'}</dd>
         </div>
       </dl>
+      <CornerForm />
     </section>
   );
 }

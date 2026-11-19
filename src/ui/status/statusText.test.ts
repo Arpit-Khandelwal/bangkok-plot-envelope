@@ -25,7 +25,8 @@ describe('mapStatusMessage', () => {
 
   it('counts the building areas as they arrive', () => {
     expect(mapStatusMessage(state({ buildings: { loaded: 3, settled: false } }))).toEqual({
-      text: 'Loading surrounding buildings (3 of 11)',
+      text: 'Loading surrounding buildings',
+      detail: '(3 of 11)',
       kind: 'busy',
     });
   });

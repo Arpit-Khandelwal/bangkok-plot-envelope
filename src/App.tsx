@@ -39,13 +39,13 @@ export function App() {
         <SiteBar zoneLookup={view.zoneLookup} dataStatus={view.dataStatus} />
         {model ? <Legend /> : null}
       </div>
-      <main className="stage" aria-label="Site map">
+      <section className="stage" aria-label="Map">
         <MapBoundary>
           <Suspense fallback={<MapFallback />}>
             <MapView model={model} onDataError={setMapError} />
           </Suspense>
         </MapBoundary>
-      </main>
+      </section>
       <Panel view={view} design={design} mapError={mapError} />
     </div>
   );

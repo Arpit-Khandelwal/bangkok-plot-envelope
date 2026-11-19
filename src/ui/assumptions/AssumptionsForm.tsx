@@ -38,9 +38,9 @@ export function AssumptionsForm() {
   const officeExplainId = useId();
 
   return (
-    <details className="panel-section disclosure">
+    <details className="panel-section disclosure" aria-label="Assumptions (not law)">
       <summary className="disclosure__summary">
-        <h2 className="panel-section__title">Assumptions (not law)</h2>
+        <span className="panel-section__title">Assumptions (not law)</span>
       </summary>
       <div className="disclosure__body">
         <p className="panel-section__lede">Industry norms used to turn allowed space into floors and units. Change them to match your scheme.</p>

@@ -79,7 +79,7 @@
 .section__label {
   fill: var(--ink);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 

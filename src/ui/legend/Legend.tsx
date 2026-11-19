@@ -1,3 +1,4 @@
+import { COVERED_ZONE } from '../zone/zoneCoverage';
 import { useIsPhone } from '../layout/useMediaQuery';
 
 interface LegendEntry {
@@ -10,7 +11,7 @@ const ENTRIES: readonly LegendEntry[] = [
   { key: 'ghost', label: 'Allowed space under the other rule set' },
   { key: 'solid', label: 'The design' },
   { key: 'context', label: 'Surrounding buildings (heights from satellite data; lighter blocks are estimates)' },
-  { key: 'zone', label: 'Edge of zone ย.7' },
+  { key: 'zone', label: 'Edge of zone' },
 ];
 
 function LegendList() {
@@ -19,7 +20,13 @@ function LegendList() {
       {ENTRIES.map((entry) => (
         <li key={entry.key} className="legend__item">
           <span className={`legend__swatch legend__swatch--${entry.key}`} aria-hidden="true" />
-          <span>{entry.label}</span>
+          {entry.key === 'zone' ? (
+            <span>
+              Edge of zone <span lang="th">{COVERED_ZONE.code}</span>
+            </span>
+          ) : (
+            <span>{entry.label}</span>
+          )}
         </li>
       ))}
     </ul>

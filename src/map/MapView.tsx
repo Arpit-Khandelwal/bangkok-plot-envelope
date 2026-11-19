@@ -384,7 +384,7 @@ export function MapView({ model, onDataError }: MapViewProps) {
 
   return (
     <>
-      <div ref={containerRef} className="map-root" data-testid="map" role="application" aria-label="Map of the site. Click to place the corners of the plot." />
+      <div ref={containerRef} className="map-root" data-testid="map" role="application" aria-label="Map of the site. Click to place the corners of the plot. No mouse? Choose an example plot, open a shared link, or enter the corner coordinates in the panel." />
       <MapStatus message={statusMessage} onRetry={retryBuildings} />
     </>
   );

@@ -184,16 +184,17 @@
   flex-shrink: 0;
   width: 18px;
   height: 12px;
-  border: 1px solid var(--ink);
+  /* Every swatch gets a soft-ink edge, so even the palest fill reads against the paper. */
+  border: 1px solid var(--ink-soft);
 }
 
 .legend__swatch--glass {
-  border-color: var(--glass);
+  border-color: var(--ink-soft);
   background: color-mix(in srgb, var(--glass) 25%, transparent);
 }
 
 .legend__swatch--ghost {
-  border-color: color-mix(in srgb, var(--glass) 45%, transparent);
+  border-color: var(--ink-soft);
   background: none;
 }
 
@@ -203,7 +204,7 @@
 }
 
 .legend__swatch--context {
-  border-color: var(--rule);
+  border-color: var(--ink-soft);
   /* Half solid, half lighter: measured and estimated heights. */
   background: #eceeec;
   box-shadow: inset 9px 0 0 #d6dad7;
@@ -212,7 +213,7 @@
 .legend__swatch--zone {
   height: 0;
   border: 0;
-  border-top: 2px dashed var(--zone-orange);
+  border-top: 2px dashed var(--zone-line);
 }
 
 @media (min-width: 900px) {
@@ -239,17 +240,17 @@
 }
 
 /* ---------- Phone (under 900px) ----------
- * The site bar is one compact row above the map, at most 56px when closed. The zone chip shows
+ * The site bar is one compact row above the map, 56px at least, taller when large text wraps it. The zone chip shows
  * the code only; the examples menu and Start over live in the "More" disclosure.
  */
 @media (max-width: 899.98px) {
   .site-bar {
     position: relative;
     z-index: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
-    height: 56px;
+    min-height: 56px;
     padding: 6px var(--space-3);
   }
 

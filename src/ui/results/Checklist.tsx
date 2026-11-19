@@ -1,5 +1,6 @@
 import type { Check, CheckStatus } from '../../core/types';
 import { Citations } from '../common/Citations';
+import { ThaiText } from '../common/ThaiText';
 import { StatusMark } from '../common/StatusMark';
 
 const STATUS_ORDER: Readonly<Record<CheckStatus, number>> = { fail: 0, warn: 1, pass: 2, info: 3 };
@@ -37,16 +38,20 @@ export function Checklist({ checks }: ChecklistProps) {
           <li key={`${check.ruleId}-${index}`} className={`check check--${check.status}`}>
             <div className="check__head">
               <StatusMark status={check.status} />
-              <h3 className="check__title">{check.title}</h3>
+              <h3 className="check__title"><ThaiText>{check.title}</ThaiText></h3>
             </div>
             <dl className="check__values">
               <div>
                 <dt>Required</dt>
-                <dd>{check.required}</dd>
+                <dd>
+                  <ThaiText>{check.required}</ThaiText>
+                </dd>
               </div>
               <div>
                 <dt>This design</dt>
-                <dd>{check.actual}</dd>
+                <dd>
+                  <ThaiText>{check.actual}</ThaiText>
+                </dd>
               </div>
             </dl>
             <Citations citations={check.citations} />

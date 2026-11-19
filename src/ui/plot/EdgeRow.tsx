@@ -29,6 +29,10 @@ export function EdgeRow({ index, edges, lengthM, isSelected, startNote = null, o
   const spec: EdgeSpec = edges[index] ?? { kind: 'neighbour' };
   const letter = edgeLetter(index);
 
+  const selectIfNeeded = (): void => {
+    if (!isSelected) onSelect(index);
+  };
+
   useEffect(() => {
     if (!isSelected) return;
     if (rowRef.current) revealInPanel(rowRef.current);
@@ -38,9 +42,9 @@ export function EdgeRow({ index, edges, lengthM, isSelected, startNote = null, o
     <li
       ref={rowRef}
       className={`edge-row${isSelected ? ' edge-row--selected' : ''}`}
-      onFocusCapture={() => {
-        if (!isSelected) onSelect(index);
-      }}
+      // Selecting changes the map, so it follows what the user does here, never mere focus.
+      onClickCapture={selectIfNeeded}
+      onChangeCapture={selectIfNeeded}
     >
       <button type="button" className="edge-row__select" aria-pressed={isSelected} onClick={() => onSelect(index)}>
         <span className={`edge-row__letter edge-row__letter--${spec.kind}`}>{letter}</span>

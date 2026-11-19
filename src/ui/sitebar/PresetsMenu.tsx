@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { ROAD_WIDTH_NOTE, type NamedPlotPreset } from '../../state/presets';
 import { useAppStore } from '../../state/store';
+import { focusSoon, PLOT_HEADING_SELECTOR } from '../focus';
 
 export interface PresetsMenuProps {
   readonly presets: readonly NamedPlotPreset[];
@@ -14,7 +15,13 @@ export function PresetsMenu({ presets }: PresetsMenuProps) {
 
   const choose = (preset: NamedPlotPreset): void => {
     loadPreset(preset);
-    if (detailsRef.current) detailsRef.current.open = false;
+    if (detailsRef.current) {
+      detailsRef.current.open = false;
+      // On a phone the menu sits inside the "More" disclosure, which would stay open over the map.
+      const more = detailsRef.current.closest<HTMLDetailsElement>('details.site-bar__more');
+      if (more) more.open = false;
+    }
+    focusSoon(PLOT_HEADING_SELECTOR);
   };
 
   return (

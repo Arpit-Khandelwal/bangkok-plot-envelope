@@ -3,6 +3,7 @@ import { PRESETS } from '../../state/presets';
 import { useAppStore } from '../../state/store';
 import type { DataStatus } from '../../state/useEvaluation';
 import { useIsPhone } from '../layout/useMediaQuery';
+import { EXAMPLES_SUMMARY_SELECTOR, focusSoon } from '../focus';
 import { BuildingTypeControl } from './BuildingTypeControl';
 import { CopyLinkButton } from './CopyLinkButton';
 import { PresetsMenu } from './PresetsMenu';
@@ -19,18 +20,24 @@ export function SiteBar({ zoneLookup, dataStatus }: SiteBarProps) {
   const clearPlot = useAppStore((state) => state.clearPlot);
   const isPhone = useIsPhone();
 
+  // The button unmounts with the plot, so focus goes to the example menu that stays.
+  const startOver = (): void => {
+    clearPlot();
+    focusSoon(EXAMPLES_SUMMARY_SELECTOR);
+  };
+
   const actions = (
-    <nav className="site-bar__actions" aria-label="Plot">
+    <div className="site-bar__actions" role="group" aria-label="Plot actions">
       <PresetsMenu presets={PRESETS} />
       {hasPlot ? (
         <>
-          <button type="button" className="button button--quiet" onClick={clearPlot}>
+          <button type="button" className="button button--quiet" onClick={startOver}>
             Start over
           </button>
           <CopyLinkButton />
         </>
       ) : null}
-    </nav>
+    </div>
   );
 
   return (

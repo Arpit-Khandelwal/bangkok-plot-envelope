@@ -9,6 +9,8 @@
 
   /* Meaning */
   --zone-orange: #e8862e;
+  /* The zone outline as a line: darker than the chip fill so it holds against the paper. */
+  --zone-line: #b45a00;
   --glass: #2f7dd1;
   --pass: #1f7a4d;
   --fail: #c0362c;

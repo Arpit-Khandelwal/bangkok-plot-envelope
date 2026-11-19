@@ -1,5 +1,6 @@
 import type { Design } from "../../core/types";
 import { useAppStore } from "../../state/store";
+import { ThaiText } from "../common/ThaiText";
 import { StatusMark } from "../common/StatusMark";
 import { formatM2, formatMetres, plural } from "../format";
 
@@ -33,14 +34,16 @@ export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
       <h2 id="designs-heading" className="panel-section__title">
         Concept designs
       </h2>
-      <div className="scroll-x">
+      <div className="scroll-x" tabIndex={0} role="region" aria-label="Concept designs, scrolls sideways">
         <table className="compare">
           <caption className="visually-hidden">
             Concept designs compared. Choose a design to show it on the map.
           </caption>
           <thead>
             <tr>
-              <td className="compare__corner" />
+              <th scope="col" className="compare__corner">
+                <span className="visually-hidden">Measure</span>
+              </th>
               {designs.map((design) => (
                 <th
                   key={design.id}
@@ -127,7 +130,9 @@ export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
         </table>
       </div>
       <p className="scroll-hint">Scroll sideways to see every design.</p>
-      {selected ? <p className="compare__summary">{selected.summary}</p> : null}
+      {selected ? <p className="compare__summary">
+          <ThaiText>{selected.summary}</ThaiText>
+        </p> : null}
     </section>
   );
 }
