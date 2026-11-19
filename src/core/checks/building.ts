@@ -1,7 +1,8 @@
 /** Floor height, parking, and the informational checks (EIA, planting, fire road). */
 import { regionArea } from '../geom';
 import { parkingNeed, stallsProvided } from '../measure/areas';
-import { m, m2, num } from '../rules/format';
+import { parkingLevels } from '../measure/levels';
+import { m, m2, m2Vs, mVs, num } from '../rules/format';
 import type { Check } from '../types';
 import { isEnabled, makeCheck, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -26,15 +27,17 @@ function floorHeightChecks(input: CheckInput): readonly Check[] {
   const entered = input.enteredFloorToFloorM;
   const overridden = Number.isFinite(entered) && entered < min;
   const ok = lowest >= min - HEIGHT_EPSILON_M;
+  const shown = mVs(lowest, min);
+  const enteredShown = mVs(entered, min);
   return [
     makeCheck(input, {
       ruleId: id,
       title: titleOf(input, id, 'Minimum floor-to-floor height'),
       status: !ok ? 'fail' : overridden ? 'warn' : 'pass',
-      required: `Floor to floor at least ${m(min)}.`,
+      required: `Floor to floor at least ${shown.limit}.`,
       actual: overridden
-        ? `Your assumed ${m(entered)} is below the legal minimum, so the design uses ${m(lowest)}.`
-        : `${m(lowest)} on the ${main.length} main-use floors.`,
+        ? `Your assumed ${enteredShown.value} is below the legal minimum, so the design uses ${shown.value}.`
+        : `${shown.value} on the ${main.length} main-use floors.`,
     }),
   ];
 }
@@ -44,7 +47,8 @@ function parkingChecks(input: CheckInput, measured: Measured): readonly Check[] 
   if (rule.ruleId === null || !isEnabled(input, rule.ruleId)) return [];
   const need = parkingNeed(measured.sums.main, rule, input.assumptions, input.buildingType);
   const provided = stallsProvided(measured.sums.parking, input.assumptions);
-  const parkingFloors = input.floors.filter((f) => f.use === 'parking').length;
+  const levels = parkingLevels(input.floors);
+  const sharedText = levels.shared === 0 ? '' : `, ${levels.shared} of them shared with main use`;
   const perUnit = need.byUnits > 0 ? `, or ${num(need.byUnits)} for the units of 60 m² or more` : '';
   return [
     makeCheck(input, {
@@ -52,7 +56,7 @@ function parkingChecks(input: CheckInput, measured: Measured): readonly Check[] 
       title: titleOf(input, rule.ruleId, 'Car parking'),
       status: provided >= need.required ? 'pass' : 'fail',
       required: `At least ${num(need.required)} spaces: ${num(need.byArea)} at one per ${m2(rule.m2PerStall)} of main-use floor area (${m2(measured.sums.main)})${perUnit}, whichever is more.`,
-      actual: `${num(provided)} spaces on ${parkingFloors} parking floor${parkingFloors === 1 ? '' : 's'} (${m2(measured.sums.parking)} at ${m2(input.assumptions.parkingM2PerStall)} per space).`,
+      actual: `${num(provided)} spaces on ${levels.count} parking level${levels.count === 1 ? '' : 's'}${sharedText} (${m2(measured.sums.parking)} at ${m2(input.assumptions.parkingM2PerStall)} per space).`,
     }),
   ];
 }
@@ -63,13 +67,14 @@ function eiaCheck(input: CheckInput, measured: Measured): readonly Check[] {
   const need = parkingNeed(measured.sums.main, input.regime.parking, input.assumptions, input.buildingType);
   const usable = measured.sums.main * input.assumptions.efficiency;
   const needed = need.units >= EIA_UNITS || usable >= EIA_USABLE_AREA_M2;
+  const usableShown = m2Vs(usable, EIA_USABLE_AREA_M2);
   return [
     makeCheck(input, {
       ruleId: id,
       title: titleOf(input, id, 'Environmental impact assessment'),
       status: 'info',
-      required: `Needed at ${EIA_UNITS} units or more, or ${m2(EIA_USABLE_AREA_M2)} or more of usable area.`,
-      actual: `${num(need.units)} units and ${m2(usable)} usable: ${needed ? 'an EIA is needed' : 'no EIA needed'}.`,
+      required: `Needed at ${EIA_UNITS} units or more, or ${usableShown.limit} or more of usable area.`,
+      actual: `${num(need.units)} units and ${usableShown.value} usable: ${needed ? 'an EIA is needed' : 'no EIA needed'}.`,
     }),
   ];
 }

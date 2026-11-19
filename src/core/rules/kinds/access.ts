@@ -26,10 +26,10 @@ function bestTier(spec: AccessSpec, roads: readonly RoadFront[]): Best | null {
 }
 
 export const resolveAccess: Resolver<AccessSpec> = (spec, input) => {
-  const roadsText = input.roads.map(describeRoad).join(' and ') || 'no road';
   const notes = `${FRONTAGE_ASSUMPTION} ${UNCHECKED_NETWORK}`;
   const best = bestTier(spec, input.roads);
   const first = spec.tiers[0];
+  const roadsText = input.roads.map((r) => describeRoad(r, first)).join(' and ') || 'no road';
   if (best === null || first === undefined) {
     return {
       requirement: `A high-rise or extra-large building is not possible on this plot: it needs ${first === undefined ? 'a qualifying road' : tierText(first)}.`,
@@ -40,7 +40,7 @@ export const resolveAccess: Resolver<AccessSpec> = (spec, input) => {
   const limit = best.tier.maxGfaM2;
   if (limit === null) {
     return {
-      requirement: `Road access allows a high-rise of any size: the plot has ${describeRoad(best.road)}.`,
+      requirement: `Road access allows a high-rise of any size: the plot has ${describeRoad(best.road, best.tier)}.`,
       basis: `It meets the widest access test, ${tierText(best.tier)}. ${notes}`,
       effects: {},
     };
@@ -48,7 +48,7 @@ export const resolveAccess: Resolver<AccessSpec> = (spec, input) => {
   const above = best.next === null ? '' : `; above that the plot needs ${tierText(best.next)}`;
   return {
     requirement: `Total floor area at most ${m2(limit)}${above}.`,
-    basis: `The best road is ${describeRoad(best.road)}: it passes the test of ${tierText(best.tier)} but not the next one. ${notes}`,
+    basis: `The best road is ${describeRoad(best.road, best.next ?? best.tier)}: it passes the test of ${tierText(best.tier)} but not the next one. ${notes}`,
     effects: {
       gfaLimits: [{ ruleId: spec.meta.id, limitM2: limit, measure: 'totalFloorArea', exclusive: false }],
     },

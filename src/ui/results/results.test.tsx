@@ -7,6 +7,8 @@ import { sampleEvaluation } from '../fixtures/sampleEvaluation';
 import { formatM2 } from '../format';
 import { RuleList } from '../rules/RuleList';
 import { resetStore } from '../testing/storeReset';
+import { evaluate } from '../../core/evaluate';
+import { NEIGHBOUR, rect, road, scenario } from '../../core/pipeline/test-scenarios';
 import { AreaSchedule } from './AreaSchedule';
 import { Checklist } from './Checklist';
 import { DesignSwitcher } from './DesignSwitcher';
@@ -50,6 +52,17 @@ describe('AreaSchedule', () => {
     expect(rowSum).toBe(tower.totals.grossFloorAreaM2);
     expect(screen.getByTestId('schedule-total').textContent).toBe(formatM2(tower.totals.grossFloorAreaM2));
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows a shared parking level as two rows with the same level', () => {
+    const e = evaluate(scenario(rect(100, 100), [road(30), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR]));
+    const low = e.ok ? e.designs.find((d) => d.id === 'low-rise-block') : undefined;
+    if (low === undefined) throw new Error('no low-rise design');
+    render(<AreaSchedule design={low} />);
+    const headers = within(screen.getByRole('table')).getAllByRole('rowheader').map((h) => h.getAttribute('aria-label'));
+    // This plot's low-rise shares its ground floor: housing at the road side, parking behind.
+    const shared = headers.filter((h) => h?.startsWith('Level 1,'));
+    expect(shared).toEqual(['Level 1, residential', 'Level 1, parking']);
   });
 
   it('lists the top floor first', () => {

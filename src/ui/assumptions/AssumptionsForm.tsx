@@ -15,11 +15,11 @@ interface AssumptionField {
 
 const FIELDS: readonly AssumptionField[] = [
   { key: 'floorToFloorM', label: 'Floor-to-floor height', unit: 'm', min: 2.6, max: 8 },
-  { key: 'parkingFloorToFloorM', label: 'Parking floor-to-floor height', unit: 'm', min: 2.2, max: 6 },
+  { key: 'parkingFloorToFloorM', label: 'Parking floor-to-floor height', unit: 'm', min: 2.4, max: 6 },
   { key: 'efficiency', label: 'Sellable share of non-parking floor area', unit: '%', min: 30, max: 100, isShare: true },
   { key: 'averageUnitM2', label: 'Average unit size', unit: 'm²', min: 20, max: 2000 },
   { key: 'shareOfUnitsOver60M2', label: 'Units of 60 m² or more', unit: '%', min: 0, max: 100, isShare: true },
-  { key: 'parkingM2PerStall', label: 'Parking floor area per car, with aisles and ramps', unit: 'm²', min: 12, max: 60 },
+  { key: 'parkingM2PerStall', label: 'Parking floor area per car, with aisles and ramps', unit: 'm²', min: 20, max: 60 },
   { key: 'parapetM', label: 'Parapet and rooftop structure', unit: 'm', min: 0, max: 10 },
 ];
 
@@ -31,8 +31,11 @@ export function AssumptionsForm() {
   const setAssumption = useAppStore((state) => state.setAssumption);
   const parkingCountsInFar = useAppStore((state) => state.interpretation.parkingCountsInFar);
   const setInterpretation = useAppStore((state) => state.setInterpretation);
+  const officeParkingCounts = useAppStore((state) => state.interpretation.officeParkingCountsInOperatingArea);
   const switchId = useId();
   const explainId = useId();
+  const officeSwitchId = useId();
+  const officeExplainId = useId();
 
   return (
     <details className="panel-section disclosure">
@@ -73,6 +76,23 @@ export function AssumptionsForm() {
         </div>
         <p id={explainId} className="number-field__hint">
           On by default: the 2013 plan excludes nothing from floor area and exempts only extra public parking.
+        </p>
+        <div className="switch switch--block">
+          <input
+            id={officeSwitchId}
+            type="checkbox"
+            role="switch"
+            className="switch__input"
+            checked={officeParkingCounts}
+            onChange={(event) => setInterpretation('officeParkingCountsInOperatingArea', event.target.checked)}
+            aria-describedby={officeExplainId}
+          />
+          <label htmlFor={officeSwitchId} className="switch__label">
+            Count an office&apos;s own parking in its operating area
+          </label>
+        </div>
+        <p id={officeExplainId} className="number-field__hint">
+          The plan measures offices by operating area. Whether an office&apos;s own car park counts is not settled; the safer reading counts it.
         </p>
       </div>
     </details>

@@ -1,6 +1,7 @@
 /** Design totals, every one a sum over the floors. */
 import { regionArea, unionAll } from '../geom';
 import { addFloor, farArea, NO_AREA, parkingNeed, stallsProvided } from '../measure/areas';
+import { levelCount, roofDeck } from '../measure/levels';
 import type { DesignTotals, Floor } from '../types';
 import type { DesignContext } from './context';
 
@@ -10,8 +11,7 @@ export function computeTotals(ctx: DesignContext, floors: readonly Floor[], allo
   const farFloorAreaM2 = farArea(sums, ctx.reading);
   const coverageM2 = regionArea(unionAll(floors.map((f) => f.outline)));
   const need = parkingNeed(sums.main, ctx.regime.parking, ctx.assumptions, ctx.buildingType);
-  const top = floors[floors.length - 1];
-  const roofDeckHeightM = top?.topM ?? 0;
+  const roofDeckHeightM = roofDeck(floors);
   const volume = floors.reduce((v, f) => v + f.areaM2 * (f.topM - f.baseM), 0);
   const envelopeVolume = ctx.envelope.volumeM3;
   return {
@@ -23,7 +23,7 @@ export function computeTotals(ctx: DesignContext, floors: readonly Floor[], allo
     sellableAreaM2: sums.main * ctx.assumptions.efficiency,
     coverageM2,
     openSpaceM2: plot - coverageM2,
-    storeys: floors.length,
+    storeys: levelCount(floors),
     roofDeckHeightM,
     topHeightM: floors.length === 0 ? 0 : roofDeckHeightM + ctx.assumptions.parapetM,
     units: need.units,

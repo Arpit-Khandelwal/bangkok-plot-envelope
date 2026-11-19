@@ -3,7 +3,7 @@ import { edgeListText } from '../edgeNames';
 import { accessSpec, collectRoads, useSizeSpec } from '../rules';
 import type { RoadFront } from '../rules';
 import type { AccessRoute } from '../rules/data/spec';
-import { m, m2 } from '../rules/format';
+import { m, m2, m2Vs, mVs } from '../rules/format';
 import type { Check } from '../types';
 import { isEnabled, makeCheck, passFail, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -13,8 +13,10 @@ export const STATION_MARGIN_M = 40;
 const ACCESS_RULE = 'mr33.access-road';
 const USE_SIZE_RULE = 'plan.use-size';
 
-function describeRoad(input: CheckInput, road: RoadFront): string {
-  return `${m(road.frontageM)} of frontage (${edgeListText(input.site, road.edgeIndices)}) on a ${m(road.rowWidthM)} road`;
+function describeRoad(input: CheckInput, road: RoadFront, minFrontageM: number, minRowM: number): string {
+  const frontage = mVs(road.frontageM, minFrontageM).value;
+  const width = mVs(road.rowWidthM, minRowM).value;
+  return `${frontage} of frontage (${edgeListText(input.site, road.edgeIndices)}) on a ${width} road`;
 }
 
 function accessChecks(input: CheckInput, measured: Measured): readonly Check[] {
@@ -27,13 +29,14 @@ function accessChecks(input: CheckInput, measured: Measured): readonly Check[] {
   const passing = roads.find((r) => r.rowWidthM >= tier.minRowM && r.frontageM >= tier.minFrontageM);
   const best = passing ?? roads.reduce<RoadFront | undefined>((a, r) => (a === undefined || r.rowWidthM > a.rowWidthM ? r : a), undefined);
   const title = titleOf(input, ACCESS_RULE, 'Road access for a high-rise');
+  const grossShown = tier.maxGfaM2 === null ? m2(gross) : m2Vs(gross, tier.maxGfaM2).value;
   return [
     makeCheck(input, {
       ruleId: ACCESS_RULE,
       title,
       status: passFail(passing !== undefined),
-      required: `For ${m2(gross)} of floor area: at least ${m(tier.minFrontageM)} of frontage on a public road at least ${m(tier.minRowM)} wide.`,
-      actual: best === undefined ? 'The plot has no road.' : `${describeRoad(input, best)}.`,
+      required: `For ${grossShown} of floor area: at least ${m(tier.minFrontageM)} of frontage on a public road at least ${m(tier.minRowM)} wide.`,
+      actual: best === undefined ? 'The plot has no road.' : `${describeRoad(input, best, tier.minFrontageM, tier.minRowM)}.`,
     }),
     makeCheck(input, {
       ruleId: ACCESS_RULE,
@@ -75,7 +78,8 @@ function stationChecks(input: CheckInput, measured: Measured): readonly Check[] 
     (r) => r.kind === 'road' && roads.some((rd) => rd.rowWidthM >= r.minRowM && rd.frontageM >= r.minFrontageM),
   );
   const freeBound = spec.tiers[index - 1]?.upToM2 ?? 0;
-  const area = spec.measure === 'mainUseFloorArea' ? measured.sums.main : measured.sums.gross;
+  const countsParking = spec.measure === 'totalFloorArea' || input.reading.parkingCountsInOperatingArea;
+  const area = countsParking ? measured.sums.gross : measured.sums.main;
   const relies = d > route.maxDistanceM || area > freeBound;
   if (roadHolds || !relies || Math.abs(d - route.maxDistanceM) > STATION_MARGIN_M) return [];
   return [
@@ -84,7 +88,7 @@ function stationChecks(input: CheckInput, measured: Measured): readonly Check[] 
       title,
       status: 'warn',
       required: `A mass-transit platform within ${m(route.maxDistanceM)} allows more than ${m2(freeBound)}.`,
-      actual: `Check on site: the distance to the platform is ${m(Math.round(d))}, close to the ${m(route.maxDistanceM)} limit.`,
+      actual: `Check on site: the distance to the platform is ${mVs(d, route.maxDistanceM, 0).value}, close to the ${m(route.maxDistanceM)} limit.`,
     }),
   ];
 }

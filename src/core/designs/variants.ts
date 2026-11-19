@@ -4,6 +4,7 @@
  * target on about half the plate, kept when it gains at least three storeys on (b); and, while
  * fewer than two designs remain, smaller-plate "more open ground" variants of whichever regime
  * has an envelope. A design that fails its own checks is never returned unless rules are off.
+ * The slender tower slides toward the road when that meets the ordinance's road-facing façade rule.
  */
 import { regionArea } from '../geom';
 import type { Design, RegimeId } from '../types';
@@ -13,7 +14,9 @@ import type { DesignContext } from './context';
 import { generateVariant } from './generate';
 import type { Generated, VariantOptions } from './generate';
 import type { AreaSums } from '../measure/areas';
+import { levelCount, roofDeck } from '../measure/levels';
 import type { StopReason } from './stack';
+import { slideTowardRoad } from './slide';
 import { highRiseSummary, lowRiseSummary, openGroundSummary, slenderSummary } from './summary';
 
 /** Classification thresholds for "genuinely high-rise or extra-large" (MR 33 ข้อ 1). */
@@ -47,12 +50,39 @@ export interface DesignSet {
 const LARGEST: VariantOptions = { plateAreaM2: Number.POSITIVE_INFINITY };
 
 function isGenuinelyHigh(g: Generated): boolean {
-  const top = g.stack.floors[g.stack.floors.length - 1]?.topM ?? 0;
-  return top >= HIGH_RISE_ROOF_DECK_M || g.stack.sums.gross >= EXTRA_LARGE_M2;
+  return roofDeck(g.stack.floors) >= HIGH_RISE_ROOF_DECK_M || g.stack.sums.gross >= EXTRA_LARGE_M2;
 }
 
 function stopOf(g: Generated | null): DesignSet['stops'][RegimeId] {
   return g === null ? null : { stop: g.stack.stop, sums: g.stack.sums };
+}
+
+const FRONT_ACCESS_RULE = 'bma.front-access';
+/** A slid tower may lose at most this much floor area against the centred one. */
+const SLIDE_AREA_TOLERANCE_M2 = 1;
+
+function frontAccessPasses(d: Design): boolean {
+  return d.checks.some((c) => c.ruleId === FRONT_ACCESS_RULE && c.status === 'pass');
+}
+
+/**
+ * The slender tower, moved toward the road when that lets it meet the ordinance ข้อ 53 and it
+ * still passes every check with the same floor area; otherwise left centred (its check then warns).
+ */
+function preferNearRoad(
+  ctx: DesignContext,
+  centred: Generated,
+  opts: VariantOptions,
+  make: (g: Generated) => Design,
+  keeps: (g: Generated) => boolean,
+): Design {
+  const design = make(centred);
+  if (frontAccessPasses(design)) return design;
+  const slid = slideTowardRoad(ctx, centred, opts);
+  if (slid === null || !keeps(slid)) return design;
+  const moved = make(slid);
+  const sameArea = moved.totals.grossFloorAreaM2 >= design.totals.grossFloorAreaM2 - SLIDE_AREA_TOLERANCE_M2;
+  return moved.passes && sameArea && frontAccessPasses(moved) ? moved : design;
 }
 
 export function generateDesigns(inputs: DesignInputs): DesignSet {
@@ -75,10 +105,13 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
     add(b, (g) => finish(high, g, 'high-rise-max', 'High-rise, maximum floor area', (d) => highRiseSummary(d, high.regime, g.stack.stop, high.reading)));
   }
   if (high !== null && b !== null) {
-    const c = generateVariant(high, { plateAreaM2: SLENDER_SHARE * regionArea(b.plate), grossCapM2: b.stack.sums.gross });
-    const tallEnough = c !== null && c.stack.floors.length >= b.stack.floors.length + SLENDER_MIN_EXTRA_STOREYS;
-    if (c !== null && tallEnough && isGenuinelyHigh(c)) {
-      add(c, (g) => finish(high, g, 'slender-tower', 'Slender tower', (d) => slenderSummary(d, high.regime, g.stack.stop, SLENDER_SHARE, b.stack.sums, high.reading)));
+    const cOpts: VariantOptions = { plateAreaM2: SLENDER_SHARE * regionArea(b.plate), grossCapM2: b.stack.sums.gross };
+    const centred = generateVariant(high, cOpts);
+    const tallEnough = (g: Generated): boolean => levelCount(g.stack.floors) >= levelCount(b.stack.floors) + SLENDER_MIN_EXTRA_STOREYS;
+    const make = (g: Generated): Design =>
+      finish(high, g, 'slender-tower', 'Slender tower', (d) => slenderSummary(d, high.regime, g.stack.stop, SLENDER_SHARE, b.stack.sums, high.reading));
+    if (centred !== null && tallEnough(centred) && isGenuinelyHigh(centred)) {
+      add(centred, (g) => preferNearRoad(high, g, cOpts, make, (s) => tallEnough(s) && isGenuinelyHigh(s)));
     }
   }
   const fallbacks: ReadonlyArray<readonly [DesignContext | null, Generated | null, string, string]> = [
@@ -88,7 +121,7 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
   for (const [ctx, max, id, name] of fallbacks) {
     for (const share of OPEN_GROUND_SHARES) {
       if (out.length >= MIN_DESIGNS || ctx === null || max === null) break;
-      const opts: VariantOptions = { plateAreaM2: share * regionArea(max.plate), maxStoreys: max.stack.floors.length };
+      const opts: VariantOptions = { plateAreaM2: share * regionArea(max.plate), maxStoreys: levelCount(max.stack.floors) };
       add(generateVariant(ctx, opts), (g) => finish(ctx, g, id, name, (d) => openGroundSummary(d, share)));
     }
   }

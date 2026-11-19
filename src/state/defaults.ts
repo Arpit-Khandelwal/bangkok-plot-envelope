@@ -28,6 +28,7 @@ export const DEFAULT_ASSUMPTIONS: Readonly<Record<BuildingType, Assumptions>> = 
 /** The conservative readings recorded in DECISIONS.md section B. */
 export const DEFAULT_INTERPRETATION: Interpretation = {
   parkingCountsInFar: true,
+  officeParkingCountsInOperatingArea: true,
 };
 
 export const DEFAULT_ROAD_WIDTH_M = 8;

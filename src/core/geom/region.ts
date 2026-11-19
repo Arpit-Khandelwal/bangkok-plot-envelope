@@ -77,6 +77,21 @@ export function insetUniform(region: Region, distanceM: number): Region {
   return difference(region, strip);
 }
 
+/**
+ * Grow a region by `distanceM` with one clipper offset and mitred corners (squared off beyond a
+ * miter limit of 2). Mitred and squared corners lie outside the true round offset, so the result
+ * contains every point within `distanceM` of the region and may overshoot only at corners.
+ */
+export function growUniform(region: Region, distanceM: number): Region {
+  if (!(distanceM > 0)) return union(region);
+  if (!Number.isFinite(distanceM)) return [];
+  const grown = inflatePaths(regionToPaths(region), distanceM * CLIPPER_SCALE, JoinType.Miter, EndType.Polygon, GROW_MITER_LIMIT);
+  return booleanPaths('union', grown, [], SLIVER_AREA_M2);
+}
+
+/** Miter limit for `growUniform`, as a multiple of the distance. */
+const GROW_MITER_LIMIT = 2;
+
 /** Miter limit for `shrinkUniform`, as a multiple of the distance. */
 const SHRINK_MITER_LIMIT = 2;
 
@@ -210,9 +225,19 @@ export function minDistanceToSegment(region: Region, a: Pt, b: Pt): number {
   if (region.length === 0) return Infinity;
   if (pointInRegion(a, region) || pointInRegion(b, region)) return 0;
   let best = Infinity;
+  const minX = Math.min(a.x, b.x);
+  const maxX = Math.max(a.x, b.x);
+  const minY = Math.min(a.y, b.y);
+  const maxY = Math.max(a.y, b.y);
   for (const ring of regionRings(region)) {
     for (let i = 0; i < ring.length; i++) {
-      best = Math.min(best, segmentDistance(a, b, ring[i] as Pt, ring[(i + 1) % ring.length] as Pt));
+      const c = ring[i] as Pt;
+      const d = ring[(i + 1) % ring.length] as Pt;
+      // The gap between the two bounding boxes is a lower bound: skip segments that cannot be nearer.
+      const gx = Math.max(0, Math.min(c.x, d.x) - maxX, minX - Math.max(c.x, d.x));
+      const gy = Math.max(0, Math.min(c.y, d.y) - maxY, minY - Math.max(c.y, d.y));
+      if (gx * gx + gy * gy >= best * best) continue;
+      best = Math.min(best, segmentDistance(a, b, c, d));
       if (best === 0) return 0;
     }
   }

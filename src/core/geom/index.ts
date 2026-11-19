@@ -16,6 +16,7 @@ export type { BuildSiteResult } from './site';
 export {
   clipHalfPlane,
   difference,
+  growUniform,
   insetUniform,
   intersection,
   largestPiece,

@@ -15,10 +15,19 @@ export interface AreaScheduleProps {
   readonly design: Design;
 }
 
-/** Floors from the top down, with a total that is the sum of the rows shown. */
+/** Within one level, main use above parking, as the schedule reads from the top down. */
+function useRank(use: FloorUse): number {
+  return use === 'parking' ? 1 : 0;
+}
+
+/**
+ * Floors from the top down, with a total that is the sum of the rows shown. A shared level
+ * (parking at the back, main use at the road side) is two rows with the same level number.
+ */
 export function AreaSchedule({ design }: AreaScheduleProps) {
-  const floors = [...design.floors].sort((a, b) => b.level - a.level);
+  const floors = [...design.floors].sort((a, b) => b.level - a.level || useRank(a.use) - useRank(b.use));
   const total = floors.reduce((sum, floor) => sum + floor.areaM2, 0);
+  const levelCount = new Set(floors.map((floor) => floor.level)).size;
   const { totals } = design;
 
   return (
@@ -48,8 +57,8 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
         </thead>
         <tbody>
           {floors.map((floor) => (
-            <tr key={floor.level}>
-              <th scope="row" className="num">
+            <tr key={`${floor.level}-${floor.use}`}>
+              <th scope="row" className="num" aria-label={`Level ${floor.level}, ${USE_LABELS[floor.use].toLowerCase()}`}>
                 {floor.level}
               </th>
               <td>
@@ -64,7 +73,7 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
         <tfoot>
           <tr>
             <th scope="row" colSpan={3}>
-              Total, {formatNumber(floors.length)} floors
+              Total, {formatNumber(levelCount)} floors
             </th>
             <td className="num" data-testid="schedule-total">
               {formatM2(total)}

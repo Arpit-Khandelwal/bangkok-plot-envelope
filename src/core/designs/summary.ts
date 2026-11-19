@@ -1,7 +1,7 @@
 /** One-line summaries that say what distinguishes each design, with its headline numbers. */
 import { limitCeiling, measuredArea } from '../measure/areas';
 import type { AreaReading, AreaSums } from '../measure/areas';
-import { m, m2, pct } from '../rules/format';
+import { m, m2, mVs, pct } from '../rules/format';
 import type { Design, RegimeRules } from '../types';
 import type { StopReason } from './stack';
 
@@ -10,9 +10,11 @@ type Draft = Omit<Design, 'summary'>;
 /** A design within this of its floor-area ceiling has reached it. */
 const AT_LIMIT_M2 = 2;
 
-function headline(d: Draft): string {
+/** Storeys, floor area and roof deck; the deck is shown so it never contradicts `capM`. */
+function headline(d: Draft, capM: number | null = null): string {
   const t = d.totals;
-  return `${t.storeys} storeys, ${m2(t.grossFloorAreaM2)} of floor area, roof deck at ${m(t.roofDeckHeightM)}`;
+  const deck = capM === null ? m(t.roofDeckHeightM) : mVs(t.roofDeckHeightM, capM).value;
+  return `${t.storeys} storeys, ${m2(t.grossFloorAreaM2)} of floor area, roof deck at ${deck}`;
 }
 
 function ruleTitle(regime: RegimeRules, ruleId: string | null): string {
@@ -38,7 +40,7 @@ export function shortfallNote(d: Draft, regime: RegimeRules, stop: StopReason, r
 export function lowRiseSummary(d: Draft, regime: RegimeRules, stop: StopReason, reading: AreaReading): string {
   const cap = regime.roofDeckCapM;
   const lead = cap === null ? 'Built under the low-rise rules' : `Keeps the roof deck under ${m(cap)} so the lighter low-rise rules apply`;
-  return `${lead}: ${headline(d)}.${shortfallNote(d, regime, stop, reading)}`;
+  return `${lead}: ${headline(d, cap)}.${shortfallNote(d, regime, stop, reading)}`;
 }
 
 export function highRiseSummary(d: Draft, regime: RegimeRules, stop: StopReason, reading: AreaReading): string {

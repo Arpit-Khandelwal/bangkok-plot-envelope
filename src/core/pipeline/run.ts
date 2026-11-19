@@ -1,8 +1,8 @@
 /** The evaluation once the site and the scenario are valid: rules, envelopes, designs. */
-import { designContext } from '../designs/context';
+import { areaReading, designContext } from '../designs/context';
 import type { DesignContext } from '../designs/context';
 import { generateDesigns } from '../designs/variants';
-import { planFarRatio, planFarRuleIds, resolveRules } from '../rules';
+import { planFarRatio, resolveRules } from '../rules';
 import type { Evaluation, Problem, RegimeId, RegimeResult, RegimeRules, Scenario, Site } from '../types';
 import { saneAssumptions } from './assumptions';
 import { withActualBinding } from './binding';
@@ -28,16 +28,14 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
   if (envelopes.lowRise === null && envelopes.highRise === null) {
     return { ok: false, site, problems: [nothingBuildableProblem(site, [resolved.lowRise, resolved.highRise])] };
   }
-  const assumptions = saneAssumptions(scenario.assumptions);
+  const sane = saneAssumptions(scenario.assumptions);
+  const assumptions = sane.assumptions;
   const contextOf = (regime: RegimeId): DesignContext | null => {
     const env = envelopes[regime];
     return env === null ? null : designContext(site, scenario, assumptions, resolved[regime], env);
   };
   const hypothetical = scenario.disabledRuleIds.length > 0;
-  const reading = {
-    planFarRuleIds: planFarRuleIds(scenario.zone, scenario.buildingType),
-    parkingCountsInFar: scenario.interpretation.parkingCountsInFar,
-  };
+  const reading = areaReading(scenario);
   const set = generateDesigns({
     contexts: { lowRise: contextOf('lowRise'), highRise: contextOf('highRise') },
     base: {
@@ -58,6 +56,7 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
     return { rules, envelope: envelopes[regime] };
   };
   const problems: Problem[] = [
+    ...sane.problems,
     ...REGIMES.flatMap((r) => {
       const p = heightOffProblem(resolved[r]);
       return p === null ? [] : [p];

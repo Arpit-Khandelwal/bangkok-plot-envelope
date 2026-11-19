@@ -4,6 +4,7 @@
  */
 import { regionArea, unionAll } from '../geom';
 import { addFloor, NO_AREA } from '../measure/areas';
+import { levelAreas, roofDeck } from '../measure/levels';
 import type { AreaReading, AreaSums } from '../measure/areas';
 import { citationsOf } from '../rules';
 import type {
@@ -50,8 +51,8 @@ export function measure(floors: readonly Floor[]): Measured {
     sums: floors.reduce((s, f) => addFloor(s, f.use, regionArea(f.outline)), NO_AREA),
     footprint,
     coverageM2: regionArea(footprint),
-    largestFloorM2: floors.reduce((m, f) => Math.max(m, regionArea(f.outline)), 0),
-    roofDeckM: floors.reduce((m, f) => Math.max(m, f.topM), 0),
+    largestFloorM2: Math.max(0, ...levelAreas(floors, (f) => regionArea(f.outline))),
+    roofDeckM: roofDeck(floors),
   };
 }
 

@@ -1,5 +1,5 @@
 import type { RoadSetbackBand, RoadSetbackSpec } from '../data/spec';
-import { edgeList, m, num } from '../format';
+import { edgeList, m, mVs, num } from '../format';
 import type { Resolver, SetbackDemand } from './types';
 
 export interface RoadSetbackResult {
@@ -53,8 +53,15 @@ function rangeText(r: RoadSetbackResult): string {
   return `between ${m(r.fromRowM)} and ${m(until)}`;
 }
 
+/** The band bound nearest the road width, so the width is shown on the right side of it. */
+function nearestBound(rowWidthM: number, r: RoadSetbackResult): number {
+  const until = r.band.untilRowM;
+  if (until === null) return r.fromRowM;
+  return Math.abs(until - rowWidthM) <= Math.abs(rowWidthM - r.fromRowM) ? until : r.fromRowM;
+}
+
 function explain(rowWidthM: number, r: RoadSetbackResult): string {
-  const head = `The road is ${m(rowWidthM)} wide, ${rangeText(r)}, so the building line is`;
+  const head = `The road is ${mVs(rowWidthM, nearestBound(rowWidthM, r)).value} wide, ${rangeText(r)}, so the building line is`;
   const rule = r.band.rule;
   switch (rule.kind) {
     case 'fromCentreline':

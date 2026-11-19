@@ -206,6 +206,20 @@ export const BUILDING_CONTROL_RULES: readonly RuleSpec[] = [
     },
   },
   {
+    kind: 'info',
+    requirement:
+      'A building over 2 storeys or 8 m needs a front open space at least 12 m wide (over 3 storeys) along at least one sixth of its external perimeter, linked to a public road by an internal road at least 6 m wide. A building on a public road may instead have a façade facing the road longer than one eighth of its external perimeter, within 20 m of the road.',
+    basis:
+      'Read as two routes: clause 53 is checked on the design (the part of the outline within 20 m of the road edge, facing it and roughly parallel to it); the clause 52(6) open space and internal road are not laid out by this tool, so a design that misses clause 53 is flagged, not failed.',
+    meta: {
+      id: 'bma.front-access',
+      category: 'access',
+      title: 'Front open space or road-facing façade',
+      titleTh: 'ที่ว่างด้านหน้าอาคาร',
+      citations: [cite('BMA2544', 'ข้อ 52(6)', 'verified'), cite('BMA2544', 'ข้อ 53', 'assumption')],
+    },
+  },
+  {
     kind: 'parking',
     buildingTypes: ['condo'],
     m2PerStall: 120,

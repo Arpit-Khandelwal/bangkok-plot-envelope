@@ -44,7 +44,8 @@ describe('invariants over 30 plots', () => {
       expect(Math.abs(t.grossFloorAreaM2 - sum)).toBeLessThan(SUM_TOLERANCE);
       expect(t.parkingFloorAreaM2 + t.mainUseFloorAreaM2).toBe(t.grossFloorAreaM2);
       expect(t.far).toBe(t.farFloorAreaM2 / result.site.areaM2);
-      expect(t.storeys).toBe(d.floors.length);
+      // A shared level is two entries (parking and main use), so storeys count distinct levels.
+      expect(t.storeys).toBe(new Set(d.floors.map((f) => f.level)).size);
     }
   });
 
@@ -74,13 +75,28 @@ describe('invariants over 30 plots', () => {
     expect(result.problems.map((p) => p.code)).toContain('no-design');
   });
 
+  it.each(RESULTS)('$name: parking provides the required stalls and at most one more', ({ result }) => {
+    if (!result.ok) return;
+    for (const d of result.designs) {
+      expect(d.totals.parkingProvided).toBeGreaterThanOrEqual(d.totals.parkingRequired);
+      expect(d.totals.parkingProvided - d.totals.parkingRequired).toBeLessThanOrEqual(1);
+    }
+  });
+
   it.each(RESULTS)('$name: floors are contiguous in height', ({ result }) => {
     if (!result.ok) return;
     for (const d of result.designs) {
-      d.floors.forEach((f, i) => {
-        expect(f.level).toBe(i + 1);
-        expect(f.baseM).toBe(i === 0 ? 0 : d.floors[i - 1]?.topM);
-        expect(f.topM).toBeGreaterThan(f.baseM);
+      // Levels run 1, 2, 3 ... with no gap; the entries of a shared level share their heights.
+      const levels = [...new Set(d.floors.map((f) => f.level))];
+      expect(levels).toEqual(levels.map((_, i) => i + 1));
+      levels.forEach((level, i) => {
+        const entries = d.floors.filter((f) => f.level === level);
+        const below = d.floors.filter((f) => f.level === level - 1);
+        for (const f of entries) {
+          expect(f.baseM).toBe(i === 0 ? 0 : below[0]?.topM);
+          expect(f.topM).toBe(entries[0]?.topM);
+          expect(f.topM).toBeGreaterThan(f.baseM);
+        }
       });
     }
   });

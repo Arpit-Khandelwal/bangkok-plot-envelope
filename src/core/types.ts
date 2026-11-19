@@ -87,6 +87,12 @@ export interface Assumptions {
 export interface Interpretation {
   /** Whether parking floor area counts toward FAR. Default true (2013 plan, by inference). */
   readonly parkingCountsInFar: boolean;
+  /**
+   * Whether an office's own parking floors count toward its operating area (พื้นที่ประกอบการ), the
+   * measure of the plan's office size limit. Default true: the definition takes in areas of continuing
+   * use, and the safe reading counts the office's own car park (research/05-office-hotel-rules.md §2).
+   */
+  readonly officeParkingCountsInOperatingArea: boolean;
 }
 
 export interface Scenario {
@@ -163,8 +169,9 @@ export interface GfaLimit {
   readonly ruleId: string;
   readonly limitM2: number;
   /**
-   * Which floor area the limit counts. `mainUse` excludes parking floors: the plan measures
-   * offices by operating area (พื้นที่ประกอบการ), not total floor area.
+   * Which floor area the limit counts. `mainUseFloorArea` is the office operating area
+   * (พื้นที่ประกอบการ): the office floors, plus the parking floors when
+   * `Interpretation.officeParkingCountsInOperatingArea` is true (the default).
    */
   readonly measure: 'totalFloorArea' | 'mainUseFloorArea';
   /** True when the area must stay strictly under the limit, e.g. under 10,000 m2 to remain low-rise. */
@@ -376,6 +383,11 @@ export type ProblemCode =
   | 'edges-mismatch'
   | 'no-road'
   | 'invalid-road-width'
+  | 'invalid-waterway-width'
+  /** Non-blocking: the station distance was not a usable number, so it is treated as unknown. */
+  | 'invalid-station-distance'
+  /** Non-blocking: an assumption was outside its sane range and a different value was used. */
+  | 'assumption-adjusted'
   | 'outside-zone'
   | 'unsupported-zone'
   | 'nothing-buildable'

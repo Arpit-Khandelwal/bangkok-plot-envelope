@@ -148,7 +148,8 @@ describe('height planes (MR 55 ข้อ 44-46)', () => {
     for (const regime of [result.lowRise, result.highRise]) {
       expect(regime.heightPlanes).toEqual([{ edgeIndex: 1, rowWidthM: 20, slope: 2, ruleId: 'mr55.height-2x' }]);
     }
-    expect(ruleOf(result.lowRise, 'mr55.height-2x').basis).toContain('60 m building-length limits');
+    // The basis now names the case and the measured length (it used to say the 60 m limits were not checked).
+    expect(ruleOf(result.lowRise, 'mr55.height-2x').basis).toContain('meet at a corner of the plot, which runs 50 m along the narrower road');
     expect(result.lowRise.setbacks.map((s) => s.distanceM)).toEqual([2, 2, 3, 3]);
   });
 

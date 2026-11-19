@@ -1,7 +1,7 @@
 /** Read-only lookups into the rule data, for the design generator and the checks. */
 import type { BuildingType, Citation, ZoneRef } from '../types';
 import { BUILDING_CONTROL_RULES, findZone } from './data';
-import type { AccessSpec, RuleSpec, UseSizeSpec, ZoneData } from './data/spec';
+import type { AccessSpec, HeightPlaneSpec, RuleSpec, UseSizeSpec, ZoneData } from './data/spec';
 
 function zoneSpecs(zone: ZoneRef | null, buildingType: BuildingType): readonly RuleSpec[] {
   const data: ZoneData | null = findZone(zone);
@@ -33,6 +33,12 @@ export function useSizeSpec(zone: ZoneRef | null, buildingType: BuildingType): U
 export function accessSpec(): AccessSpec | null {
   const spec = BUILDING_CONTROL_RULES.find((r) => r.kind === 'access');
   return spec?.kind === 'access' ? spec : null;
+}
+
+/** The road height-plane rule (its slope), or null. */
+export function heightPlaneSpec(): HeightPlaneSpec | null {
+  const spec = BUILDING_CONTROL_RULES.find((r) => r.kind === 'heightPlane');
+  return spec?.kind === 'heightPlane' ? spec : null;
 }
 
 /** Citations of a rule by id, from the zone and building-control data. */

@@ -49,6 +49,7 @@ export interface ScenarioOptions {
   readonly disabledRuleIds?: readonly string[];
   readonly zone?: Scenario['zone'];
   readonly parkingCountsInFar?: boolean;
+  readonly officeParkingCountsInOperatingArea?: boolean;
 }
 
 export function scenarioFor(site: Site, options: ScenarioOptions = {}): Scenario {
@@ -67,7 +68,10 @@ export function scenarioFor(site: Site, options: ScenarioOptions = {}): Scenario
       parkingM2PerStall: 27,
       parapetM: 3,
     },
-    interpretation: { parkingCountsInFar: options.parkingCountsInFar ?? true },
+    interpretation: {
+      parkingCountsInFar: options.parkingCountsInFar ?? true,
+      officeParkingCountsInOperatingArea: options.officeParkingCountsInOperatingArea ?? true,
+    },
     disabledRuleIds: options.disabledRuleIds ?? [],
   };
 }

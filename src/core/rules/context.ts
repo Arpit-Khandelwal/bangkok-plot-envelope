@@ -1,11 +1,12 @@
 import type { BuildingType, RegimeId, Scenario, Site } from '../types';
+import { roadFrontage } from './frontage';
 
 /** One road the plot touches, with all its edges gathered. */
 export interface RoadFront {
   readonly roadId: string;
   /** Narrowest right-of-way given on any of its edges (they should agree). */
   readonly rowWidthM: number;
-  /** Summed length of the plot edges on this road. */
+  /** Longest straight run of the plot along this road (see `roadFrontage`). */
   readonly frontageM: number;
   readonly edgeIndices: readonly number[];
 }
@@ -17,6 +18,7 @@ export interface RuleContext {
   readonly buildingType: BuildingType;
   readonly stationDistanceM: number | null;
   readonly parkingCountsInFar: boolean;
+  readonly officeParkingCountsInOperatingArea: boolean;
   /** Assumed height of parapet and rooftop structure above the roof deck (a developer norm). */
   readonly parapetM: number;
   readonly roads: readonly RoadFront[];
@@ -31,7 +33,7 @@ export function collectRoads(site: Site): readonly RoadFront[] {
     byId.set(spec.roadId, {
       roadId: spec.roadId,
       rowWidthM: prev === undefined ? spec.rowWidthM : Math.min(prev.rowWidthM, spec.rowWidthM),
-      frontageM: (prev?.frontageM ?? 0) + edge.lengthM,
+      frontageM: prev?.frontageM ?? roadFrontage(site, spec.roadId),
       edgeIndices: [...(prev?.edgeIndices ?? []), edge.index],
     });
   }
@@ -45,6 +47,7 @@ export function buildContext(site: Site, scenario: Scenario, regime: RegimeId): 
     buildingType: scenario.buildingType,
     stationDistanceM: scenario.stationDistanceM,
     parkingCountsInFar: scenario.interpretation.parkingCountsInFar,
+    officeParkingCountsInOperatingArea: scenario.interpretation.officeParkingCountsInOperatingArea,
     parapetM: scenario.assumptions.parapetM,
     roads: collectRoads(site),
   };

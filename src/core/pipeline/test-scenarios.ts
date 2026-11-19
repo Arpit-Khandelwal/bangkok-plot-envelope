@@ -32,6 +32,7 @@ export interface ScenarioOptions {
   readonly disabledRuleIds?: readonly string[];
   readonly zone?: Scenario['zone'];
   readonly parkingCountsInFar?: boolean;
+  readonly officeParkingCountsInOperatingArea?: boolean;
   readonly floorToFloorM?: number;
 }
 
@@ -67,7 +68,10 @@ export function scenario(points: readonly Pt[], edges: readonly EdgeSpec[], opti
     zone: options.zone === undefined ? { code: 'ย.7', planVersion: '2556' } : options.zone,
     stationDistanceM: options.stationDistanceM === undefined ? 300 : options.stationDistanceM,
     assumptions: { ...base, floorToFloorM: options.floorToFloorM ?? base.floorToFloorM },
-    interpretation: { parkingCountsInFar: options.parkingCountsInFar ?? true },
+    interpretation: {
+      parkingCountsInFar: options.parkingCountsInFar ?? true,
+      officeParkingCountsInOperatingArea: options.officeParkingCountsInOperatingArea ?? true,
+    },
     disabledRuleIds: options.disabledRuleIds ?? [],
   };
 }

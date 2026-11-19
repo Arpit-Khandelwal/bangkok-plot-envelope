@@ -1,3 +1,5 @@
+import { HIGH_RISE_ROOF_DECK_M } from '../../core/checks/area';
+import { mVs } from '../../core/rules/format';
 import type { Design, RegimeRules } from '../../core/types';
 import { asSentence, formatM2, formatMetres, formatNumber, formatPercent, formatRatio } from '../format';
 
@@ -29,7 +31,8 @@ function figures(design: Design, plotAreaM2: number): Figure[] {
   return [
     { label: 'Floor area ratio', value: formatRatio(totals.far), aside: totals.allowedFar > 0 ? `of ${formatRatio(totals.allowedFar)} allowed by the plan` : undefined },
     { label: 'Storeys', value: formatNumber(totals.storeys) },
-    { label: 'Roof deck', value: formatMetres(totals.roofDeckHeightM), aside: `top ${formatMetres(totals.topHeightM)}` },
+    // Shown so it never contradicts the 23 m high-rise threshold: 22.999 m reads 22.99 m, not 23 m.
+    { label: 'Roof deck', value: mVs(totals.roofDeckHeightM, HIGH_RISE_ROOF_DECK_M, 1).value, aside: `top ${formatMetres(totals.topHeightM)}` },
     { label: 'Units', value: formatNumber(totals.units) },
     { label: 'Parking spaces', value: formatNumber(totals.parkingProvided), aside: `${formatNumber(totals.parkingRequired)} required` },
     { label: 'Coverage', value: formatM2(totals.coverageM2), aside: plotAreaM2 > 0 ? `${formatPercent(totals.coverageM2 / plotAreaM2, 0)} of plot` : undefined },

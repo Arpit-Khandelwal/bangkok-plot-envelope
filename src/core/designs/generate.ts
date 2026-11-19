@@ -1,13 +1,10 @@
 /**
  * One concept design: the plate sized for open space, then floors stacked with parking at the
- * bottom. Parking and the floor-area limit depend on each other (more parking floors leave less
- * main use, which needs less parking), so the number of parking floors is searched upward from
- * zero until the stalls provided meet the requirement; the search is bounded by the storey cap.
+ * bottom, sized to the stalls required (see `stackWithParking`).
  */
 import { regionArea } from '../geom';
 import { parkingNeed, stallsProvided } from '../measure/areas';
 import type { Region } from '../types';
-import { MAX_STOREYS } from './context';
 import type { DesignContext } from './context';
 import { insetToArea } from './plate';
 import { buildStack } from './stack';
@@ -50,20 +47,84 @@ export function coverageCap(ctx: DesignContext, grossM2: number): number {
   return cap - OPEN_SPACE_MARGIN_M2;
 }
 
-/** Fewest parking floors at the bottom of the stack that meet the parking requirement. */
+/** Stalls required by the main-use floor area of a stack. */
+function required(ctx: DesignContext, stack: Stack): number {
+  return parkingNeed(stack.sums.main, ctx.regime.parking, ctx.assumptions, ctx.buildingType).required;
+}
+
+function hasMainUse(stack: Stack): boolean {
+  return stack.floors.some((f) => f.use !== 'parking');
+}
+
+/** Most doublings of the stall count tried when the first guess is not enough. */
+const MAX_STALL_DOUBLINGS = 12;
+
+interface Probe {
+  readonly stalls: number;
+  readonly stack: Stack;
+  /** Stalls provided less stalls required: >= 0 when the stack meets its own requirement. */
+  readonly margin: number;
+}
+
+/**
+ * The next stall count to try between a failing `lo` and a passing `hi`: where the margin, nearly
+ * linear in the stall count, crosses zero; the midpoint when the last guess did not halve the bracket.
+ */
+function nextGuess(lo: Probe, hi: Probe, bisect: boolean): number {
+  const mid = Math.floor((lo.stalls + hi.stalls) / 2);
+  if (bisect) return mid;
+  const t = -lo.margin / Math.max(hi.margin - lo.margin, 1e-9);
+  const guess = Math.ceil(lo.stalls + t * (hi.stalls - lo.stalls));
+  return Math.min(hi.stalls - 1, Math.max(lo.stalls + 1, guess));
+}
+
+/**
+ * The stack whose parking meets its own requirement with the fewest stalls. The requirement
+ * depends on the main-use area, which depends on the parking (more parking leaves less main use
+ * under a floor-area limit), so this searches the stall count s for the smallest s whose stack
+ * provides what it requires: a first guess from the stack without parking, then a bracketed search
+ * (false position, falling back to bisection). Every stack returned provides at least the stalls
+ * it requires.
+ */
 function stackWithParking(ctx: DesignContext, plate: Region, opts: VariantOptions): Stack | null {
-  const plateArea = regionArea(plate);
-  if (ctx.regime.parking.ruleId !== null && stallsProvided(plateArea, ctx.assumptions) === 0) {
-    // Not even one stall fits on a whole floor: parking cannot be provided on this plate.
-    const bare = buildStack(ctx, plate, { ...opts, parkingFloors: 0 });
-    const need = parkingNeed(bare.sums.main, ctx.regime.parking, ctx.assumptions, ctx.buildingType);
-    return need.required === 0 ? bare : null;
+  const probe = (stalls: number, sketch = true): Probe => {
+    const stack = buildStack(ctx, plate, { ...opts, parkingStalls: stalls, sketch });
+    const margin = hasMainUse(stack) ? stallsProvided(stack.sums.parking, ctx.assumptions) - required(ctx, stack) : Number.NEGATIVE_INFINITY;
+    return { stalls, stack, margin };
+  };
+  const bare = probe(0);
+  if (!hasMainUse(bare.stack)) return null;
+  if (bare.margin >= 0) return exact(probe, 0);
+  if (ctx.regime.parking.ruleId !== null && stallsProvided(regionArea(plate), ctx.assumptions) === 0) return null;
+  let lo = bare;
+  let hi = probe(required(ctx, bare.stack));
+  for (let i = 0; i < MAX_STALL_DOUBLINGS && Number.isFinite(hi.margin) && hi.margin < 0; i++) {
+    lo = hi;
+    hi = probe(hi.stalls * 2);
   }
-  for (let parkingFloors = 0; parkingFloors <= MAX_STOREYS; parkingFloors++) {
-    const stack = buildStack(ctx, plate, { ...opts, parkingFloors });
-    if (!stack.floors.some((f) => f.use !== 'parking')) return null;
-    const need = parkingNeed(stack.sums.main, ctx.regime.parking, ctx.assumptions, ctx.buildingType);
-    if (stallsProvided(stack.sums.parking, ctx.assumptions) >= need.required) return stack;
+  if (hi.margin < 0) return null;
+  let bisect = false;
+  while (hi.stalls - lo.stalls > 1) {
+    const span = hi.stalls - lo.stalls;
+    const next = probe(nextGuess(lo, hi, bisect));
+    if (next.margin >= 0) hi = next;
+    else lo = Number.isFinite(next.margin) ? next : { ...next, margin: lo.margin };
+    bisect = hi.stalls - lo.stalls > span / 2;
+  }
+  return exact(probe, hi.stalls);
+}
+
+/** Extra stalls tried when the exact stack falls short of the sketched one. */
+const EXACT_RETRIES = 3;
+
+/**
+ * Rebuilds the chosen stall count exactly. A trimmed floor can come out up to the area tolerance
+ * smaller than sketched, which can change the requirement by a stall, so a few more are tried.
+ */
+function exact(probe: (stalls: number, sketch?: boolean) => Probe, stalls: number): Stack | null {
+  for (let extra = 0; extra <= EXACT_RETRIES; extra++) {
+    const found = probe(stalls + extra, false);
+    if (found.margin >= 0) return found.stack;
   }
   return null;
 }
@@ -92,6 +153,14 @@ export function generateVariant(ctx: DesignContext, opts: VariantOptions): Gener
     if (found !== null && (best === null || found.stack.sums.main > best.stack.sums.main)) best = found;
   }
   return best;
+}
+
+/** The design on exactly this plate, or null when it does not fit the open-space rules. */
+export function generateOnFixedPlate(ctx: DesignContext, plate: Region, opts: VariantOptions): Generated | null {
+  const stack = stackWithParking(ctx, plate, opts);
+  if (stack === null) return null;
+  const needed = coverageCap(ctx, stack.sums.gross);
+  return regionArea(plate) <= needed ? { plate, coverageCapM2: needed, stack } : null;
 }
 
 function generateOnPlate(ctx: DesignContext, opts: VariantOptions): Generated | null {

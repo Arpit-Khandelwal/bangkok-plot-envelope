@@ -49,13 +49,23 @@ function requirementText(spec: UseSizeSpec, walk: TierWalk): string {
   return `${use} may have at most ${m2(walk.allowedM2)} of ${spec.measureLabel}; above that it is not allowed in this zone at all, whatever the road or station.`;
 }
 
+const PARKING_IN_OPERATING_AREA =
+  'The office’s own parking floors are counted in its operating area: whether they belong to it is not settled, and counting them is the safer reading (setting: count office parking in operating area).';
+const PARKING_OUT_OF_OPERATING_AREA =
+  'You have chosen to leave the office’s own parking out of its operating area. That is not the conservative reading: the definition takes in areas of continuing use.';
+
+function readingNote(spec: UseSizeSpec, input: ResolveInput): readonly string[] {
+  if (spec.measure !== 'mainUseFloorArea') return [];
+  return [input.officeParkingCountsInOperatingArea ? PARKING_IN_OPERATING_AREA : PARKING_OUT_OF_OPERATING_AREA];
+}
+
 function basisText(spec: UseSizeSpec, walk: TierWalk, input: ResolveInput): string {
   const tier = walk.failedTier ?? walk.lastConditionalPassed;
   const checks =
     tier === null ? [] : tier.anyOf.map((r) => explainRoute(r, input.roads, input.stationDistanceM));
   const hasRoadRoute = tier?.anyOf.some((r) => r.kind === 'road') ?? false;
   const roadNotes = hasRoadRoute ? [FRONTAGE_ASSUMPTION, UNCHECKED_NETWORK] : [];
-  return [...checks, ...roadNotes, ...(spec.note === undefined ? [] : [spec.note])].join(' ');
+  return [...checks, ...roadNotes, ...(spec.note === undefined ? [] : [spec.note]), ...readingNote(spec, input)].join(' ');
 }
 
 export const resolveUseSize: Resolver<UseSizeSpec> = (spec, input) => {

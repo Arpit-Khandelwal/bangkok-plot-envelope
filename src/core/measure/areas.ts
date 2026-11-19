@@ -3,7 +3,9 @@
  * checks call them on areas they measure from the finished floors themselves.
  *
  * Which floor area each limit counts:
- * - `mainUseFloorArea` limits (the office operating-area test) count the non-parking floors.
+ * - `mainUseFloorArea` limits (the office operating-area test) count the office floors, and the
+ *   parking floors too unless the user chooses `officeParkingCountsInOperatingArea: false`. The plan's
+ *   definition takes in areas of continuing use, so counting the office's own car park is the safe reading.
  * - The zone plan's FAR (`plan.far`) counts every floor, or only the non-parking floors when the
  *   user chooses `parkingCountsInFar: false`. That setting is a reading of the 2013 plan, so it
  *   applies to the plan's FAR only.
@@ -28,6 +30,8 @@ export interface AreaReading {
   /** Ids of the zone plan's FAR rules (see `planFarRuleIds`). */
   readonly planFarRuleIds: ReadonlySet<string>;
   readonly parkingCountsInFar: boolean;
+  /** Whether parking floors count toward a `mainUseFloorArea` (office operating area) limit. */
+  readonly parkingCountsInOperatingArea: boolean;
 }
 
 export function addFloor(sums: AreaSums, use: FloorUse, areaM2: number): AreaSums {
@@ -40,7 +44,7 @@ export function addFloor(sums: AreaSums, use: FloorUse, areaM2: number): AreaSum
 /** Whether a floor of this use counts toward this limit. */
 export function countsToward(limit: GfaLimit, use: FloorUse, reading: AreaReading): boolean {
   if (use !== 'parking') return true;
-  if (limit.measure === 'mainUseFloorArea') return false;
+  if (limit.measure === 'mainUseFloorArea') return reading.parkingCountsInOperatingArea;
   return reading.parkingCountsInFar || !reading.planFarRuleIds.has(limit.ruleId);
 }
 

@@ -1,10 +1,10 @@
 /** Checks of the road and station routes used by the plan's use tests and MR 33 access. */
 import type { RoadFront } from '../context';
 import type { AccessRoute } from '../data/spec';
-import { m } from '../format';
+import { m, mVs } from '../format';
 
 export const FRONTAGE_ASSUMPTION =
-  'Frontage on a road is taken as the summed length of the plot edges on that road.';
+  'Frontage on a road is taken as the longest straight run of the plot along it: the distance between the ends of a run of plot edges on that road, measured along the road. Separate stretches on the same road are not added together.';
 
 export function roadQualifies(road: RoadFront, minRowM: number, minFrontageM: number): boolean {
   return road.rowWidthM >= minRowM && road.frontageM >= minFrontageM;
@@ -33,9 +33,17 @@ export function describeRoutes(routes: readonly AccessRoute[]): string {
   return routes.map(describeRoute).join(', or ');
 }
 
-/** "the 12 m road (50 m of frontage)" */
-export function describeRoad(road: RoadFront): string {
-  return `the ${m(road.rowWidthM)} road (${m(road.frontageM)} of frontage)`;
+/** The width and frontage a road is being compared with. */
+export interface RoadTest {
+  readonly minRowM: number;
+  readonly minFrontageM: number;
+}
+
+/** "the 12 m road (50 m of frontage)"; numbers shown so they never contradict `test`. */
+export function describeRoad(road: RoadFront, test?: RoadTest): string {
+  const width = test === undefined ? m(road.rowWidthM) : mVs(road.rowWidthM, test.minRowM).value;
+  const frontage = test === undefined ? m(road.frontageM) : mVs(road.frontageM, test.minFrontageM).value;
+  return `the ${width} road (${frontage} of frontage)`;
 }
 
 /** One sentence on how the plot does against a route. */
@@ -49,18 +57,19 @@ export function explainRoute(
       return 'The distance to a station is unknown, so the station route is treated as not available.';
     }
     const verdict = stationDistanceM <= route.maxDistanceM ? 'within' : 'beyond';
-    return `The nearest station platform is ${m(stationDistanceM)} away, ${verdict} ${m(route.maxDistanceM)}.`;
+    const shown = mVs(stationDistanceM, route.maxDistanceM);
+    return `The nearest station platform is ${shown.value} away, ${verdict} ${shown.limit}.`;
   }
   const passing = roads.find((r) => roadQualifies(r, route.minRowM, route.minFrontageM));
   if (passing !== undefined) {
-    return `The road route holds: ${describeRoad(passing)} meets ${describeRoute(route)}.`;
+    return `The road route holds: ${describeRoad(passing, route)} meets ${describeRoute(route)}.`;
   }
   const [only] = roads;
   const clause =
     roads.length > 1
-      ? `neither ${roads.map(describeRoad).join(' nor ')} meets`
+      ? `neither ${roads.map((r) => describeRoad(r, route)).join(' nor ')} meets`
       : only === undefined
         ? 'the plot has no road that meets'
-        : `${describeRoad(only)} does not meet`;
+        : `${describeRoad(only, route)} does not meet`;
   return `The road route fails: ${clause} ${describeRoute(route)}.`;
 }

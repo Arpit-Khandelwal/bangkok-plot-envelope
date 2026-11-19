@@ -1,6 +1,6 @@
 /** Floor-area limits and the low-rise thresholds. */
 import { measuredArea, meetsLimit } from '../measure/areas';
-import { m, m2, num } from '../rules/format';
+import { m, m2, m2Vs, mVs, numVs } from '../rules/format';
 import type { Check, GfaLimit } from '../types';
 import { isEnabled, makeCheck, passFail, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -12,7 +12,11 @@ export const EXTRA_LARGE_M2 = 10_000;
 const THRESHOLD_RULE = 'mr33.highrise-threshold';
 
 function measureLabel(input: CheckInput, limit: GfaLimit): string {
-  if (limit.measure === 'mainUseFloorArea') return 'Main-use (operating) floor area';
+  if (limit.measure === 'mainUseFloorArea') {
+    return input.reading.parkingCountsInOperatingArea
+      ? 'Operating area: the office floors and their own parking floors'
+      : 'Operating area: the office floors only (parking left out, by your setting)';
+  }
   if (input.reading.planFarRuleIds.has(limit.ruleId) && !input.reading.parkingCountsInFar) {
     return 'Floor area counted toward FAR (parking floors left out, by your setting)';
   }
@@ -21,14 +25,16 @@ function measureLabel(input: CheckInput, limit: GfaLimit): string {
 
 function limitCheck(input: CheckInput, measured: Measured, limit: GfaLimit): Check {
   const area = measuredArea(limit, measured.sums, input.reading);
-  const bound = limit.exclusive ? `under ${m2(limit.limitM2)}` : `at most ${m2(limit.limitM2)}`;
-  const far = input.reading.planFarRuleIds.has(limit.ruleId) ? ` (FAR ${num(area / input.site.areaM2)})` : '';
+  const shown = m2Vs(area, limit.limitM2);
+  const bound = limit.exclusive ? `under ${shown.limit}` : `at most ${shown.limit}`;
+  const ratio = numVs(area / input.site.areaM2, limit.limitM2 / input.site.areaM2);
+  const far = input.reading.planFarRuleIds.has(limit.ruleId) ? ` (FAR ${ratio.value})` : '';
   return makeCheck(input, {
     ruleId: limit.ruleId,
     title: titleOf(input, limit.ruleId, 'Floor-area limit'),
     status: passFail(meetsLimit(limit, area)),
     required: `${measureLabel(input, limit)} ${bound}.`,
-    actual: `${m2(area)}${far}.`,
+    actual: `${shown.value}${far}.`,
   });
 }
 
@@ -56,24 +62,26 @@ function lowRiseThreshold(input: CheckInput, measured: Measured): readonly Check
   const top = measured.roofDeckM + input.assumptions.parapetM;
   const checks: Check[] = [];
   if (cap !== null) {
+    const deck = mVs(measured.roofDeckM, cap);
     checks.push(
       makeCheck(input, {
         ruleId: THRESHOLD_RULE,
         title: 'Roof deck under the high-rise height',
         status: passFail(measured.roofDeckM < cap),
-        required: `Roof deck below ${m(cap)}, measured from the ground to the roof-deck floor.`,
-        actual: `Roof deck at ${m(measured.roofDeckM)}; parapet top at ${m(top)} (not counted here).`,
+        required: `Roof deck below ${deck.limit}, measured from the ground to the roof-deck floor.`,
+        actual: `Roof deck at ${deck.value}; parapet top at ${m(top)} (not counted here).`,
       }),
     );
   }
   if (floorLimit !== undefined) {
+    const largest = m2Vs(measured.largestFloorM2, floorLimit.limitM2);
     checks.push(
       makeCheck(input, {
         ruleId: THRESHOLD_RULE,
         title: 'No single floor at the extra-large size',
         status: passFail(measured.largestFloorM2 < floorLimit.limitM2),
-        required: `Every single floor under ${m2(floorLimit.limitM2)}.`,
-        actual: `Largest floor ${m2(measured.largestFloorM2)}.`,
+        required: `Every single floor (all parts of one level together) under ${largest.limit}.`,
+        actual: `Largest floor ${largest.value}.`,
       }),
     );
   }
@@ -84,13 +92,15 @@ function lowRiseThreshold(input: CheckInput, measured: Measured): readonly Check
 function highRiseHeight(input: CheckInput, measured: Measured): readonly Check[] {
   if (input.regime.regime !== 'highRise' || input.disabledRuleIds.has(THRESHOLD_RULE)) return [];
   const isHigh = measured.roofDeckM >= HIGH_RISE_ROOF_DECK_M;
+  const deck = mVs(measured.roofDeckM, HIGH_RISE_ROOF_DECK_M);
+  const area = m2Vs(measured.sums.gross, EXTRA_LARGE_M2);
   return [
     makeCheck(input, {
       ruleId: THRESHOLD_RULE,
       title: 'High-rise classification',
       status: 'info',
-      required: `A roof deck at ${m(HIGH_RISE_ROOF_DECK_M)} or more, or ${m2(EXTRA_LARGE_M2)} or more of floor area, makes the building high-rise or extra-large.`,
-      actual: `Roof deck at ${m(measured.roofDeckM)} and ${m2(measured.sums.gross)} of floor area: ${isHigh ? 'a high-rise' : 'below the height threshold'}, assessed under the high-rise rules.`,
+      required: `A roof deck at ${deck.limit} or more, or ${area.limit} or more of floor area, makes the building high-rise or extra-large.`,
+      actual: `Roof deck at ${deck.value} and ${area.value} of floor area: ${isHigh ? 'a high-rise' : 'below the height threshold'}, assessed under the high-rise rules.`,
     }),
   ];
 }

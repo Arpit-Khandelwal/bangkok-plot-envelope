@@ -23,7 +23,7 @@ function describe(profile: SectionProfile, roadEdgeLetter: string): string {
     `Cut at right angles to edge ${roadEdgeLetter}.`,
     `The road is ${formatMetres(profile.rowWidthM)} wide and the required setback is ${formatMetres(profile.setbackM)}.`,
     profile.floors.length > 0
-      ? `The building has ${profile.floors.length} floors, its front face ${formatMetres(nearest)} from the plot edge and its roof at ${formatMetres(top)}.`
+      ? `The building has ${new Set(profile.floors.map((floor) => floor.level)).size} floors, its front face ${formatMetres(nearest)} from the plot edge and its roof at ${formatMetres(top)}.`
       : 'No floors are drawn.',
     `The height limit rises ${formatNumber(profile.slope, 2)} m for every metre away from the far side of the road.`,
   ];
@@ -67,7 +67,7 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
 
       {profile.floors.map((floor) => (
         <rect
-          key={floor.level}
+          key={`${floor.level}-${floor.use}`}
           className={`section__floor section__floor--${floor.use}`}
           x={toX(floor.nearM)}
           y={toY(floor.topM)}

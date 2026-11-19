@@ -37,12 +37,14 @@ function span(rings: readonly Ring[], cut: Cut): { readonly near: number; readon
   return { near: Math.min(...ds), far: Math.max(...ds) };
 }
 
-function governingPlane(site: Site, planes: readonly HeightPlane[]): HeightPlane | null {
+/** The longest edge of the widest road with a plane: the road the section is cut against. */
+export function governingPlane(site: Site, planes: readonly HeightPlane[]): HeightPlane | null {
   let best: HeightPlane | null = null;
   for (const plane of planes) {
     const len = site.edges[plane.edgeIndex]?.lengthM ?? 0;
     const bestLen = best === null ? -1 : (site.edges[best.edgeIndex]?.lengthM ?? 0);
-    if (len > bestLen) best = plane;
+    const wider = best === null || plane.rowWidthM > best.rowWidthM;
+    if (wider || (plane.rowWidthM === best?.rowWidthM && len > bestLen)) best = plane;
   }
   return best;
 }
