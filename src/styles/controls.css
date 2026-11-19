@@ -91,6 +91,10 @@
   transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
 }
 
+.segmented__short {
+  display: none;
+}
+
 .segmented__input:hover + .segmented__label {
   background: var(--paper);
 }

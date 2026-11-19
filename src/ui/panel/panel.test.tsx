@@ -101,6 +101,18 @@ describe('Panel', () => {
     expect(screen.getAllByText(message)).toHaveLength(1);
   });
 
+  it('drops the road prompt when the plot is outside the covered zone', () => {
+    resetStore({ plot: SAMPLE_PLOT, edges: SAMPLE_EDGES.map((): EdgeSpec => ({ kind: 'neighbour' })) });
+    const message = 'Mark the edge that faces the road. Setbacks and the height limit are measured from it.';
+    const outside: EvaluationView = view({
+      zoneLookup: { status: 'outside' },
+      evaluation: { ok: false, site: null, problems: [{ code: 'no-road', message, blocking: true }] },
+    });
+    render(<Panel view={outside} design={null} mapError={null} />);
+    expect(screen.getByRole('heading', { name: 'No verdict for this plot' })).toBeTruthy();
+    expect(screen.queryByText(message)).toBeNull();
+  });
+
   it('scrolls back to the top when an example is loaded, but not on ordinary edits', () => {
     const { container } = render(<Panel view={view()} design={sampleEvaluation.designs[0] ?? null} mapError={null} />);
     const panel = container.querySelector('.panel') as HTMLElement;

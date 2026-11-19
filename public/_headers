@@ -4,6 +4,25 @@
 # ETag. Matching rules are merged and repeated headers comma-joined, so no path matches two
 # rules that set Cache-Control.
 
+# Security headers on every response. Cache-Control is not set here, so this rule does not clash
+# with the caching rules below (repeated headers would be comma-joined).
+#
+# CSP notes:
+# - script-src: the only inline script is the onload attribute on the web-font stylesheet link in
+#   index.html (this.media='all'). 'unsafe-hashes' plus its sha256 allows exactly that handler and no
+#   other inline script. If that handler text in index.html changes, recompute the hash.
+# - style-src: index.html has an inline <style> block and MapLibre sets inline styles; Google Fonts CSS.
+# - connect-src / img-src: the basemap style, TileJSON, vector tiles, sprites and glyphs all come from
+#   tiles.openfreemap.org. The app's own fetches (public/data) are same-origin.
+# - worker-src / child-src: MapLibre's worker is a same-origin script; blob: covers workers it spawns.
+# - frame-ancestors 'self' (not none): same-origin framing is used for testing.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'none'
+
 # Vite fingerprints every file in /assets/ (JS chunks, CSS, the MapLibre worker): a changed file
 # gets a new name, so these never need revalidating.
 /assets/*

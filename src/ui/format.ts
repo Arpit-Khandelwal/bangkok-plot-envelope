@@ -25,6 +25,14 @@ export function formatM2(value: number): string {
   return `${formatNumber(Math.round(value))} m²`;
 }
 
+/** Square metres with exactly one decimal, so rows can be added by hand: "1,234.5 m²", "340.0 m²". */
+export function formatM2Tenths(value: number): string {
+  if (!Number.isFinite(value)) return '–';
+  const [whole = '0', fraction = '0'] = Math.abs(value).toFixed(1).split('.');
+  const sign = value < 0 && Math.abs(value) >= 0.05 ? '−' : '';
+  return `${sign}${groupThousands(whole)}.${fraction} m²`;
+}
+
 /** Lengths to one decimal: "12.5 m", "6 m". */
 export function formatMetres(value: number, maxDecimals = 1): string {
   return `${formatNumber(value, maxDecimals)} m`;

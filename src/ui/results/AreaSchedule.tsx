@@ -1,5 +1,5 @@
 import type { Design, FloorUse } from '../../core/types';
-import { formatM2, formatMetres, formatNumber } from '../format';
+import { formatM2Tenths, formatMetres, formatNumber } from '../format';
 
 export const USE_LABELS: Readonly<Record<FloorUse, string>> = {
   residential: 'Residential',
@@ -8,8 +8,21 @@ export const USE_LABELS: Readonly<Record<FloorUse, string>> = {
   mixed: 'Mixed use',
 };
 
-/** Floor areas are shown to the whole square metre. */
+/** Gap between the floor list and the design total that is worth warning about. */
 const AREA_TOLERANCE_M2 = 0.5;
+/** Rows are shown to 0.1 m²; a displayed sum this close to the true total is shown as the total. */
+const DISPLAY_SUM_TOLERANCE_M2 = 0.05;
+const EPSILON = 1e-9;
+const TENTHS_PER_M2 = 10;
+
+/** The total as displayed: the sum of the displayed rows when that matches the truth, else the truth. */
+export function scheduleTotal(areasM2: readonly number[]): { readonly shownM2: number; readonly isRowSum: boolean } {
+  const trueTotal = areasM2.reduce((sum, area) => sum + area, 0);
+  const tenths = areasM2.reduce((sum, area) => sum + Math.round(area * TENTHS_PER_M2), 0);
+  const rowSum = tenths / TENTHS_PER_M2;
+  const isRowSum = Math.abs(rowSum - trueTotal) <= DISPLAY_SUM_TOLERANCE_M2 + EPSILON;
+  return { shownM2: isRowSum ? rowSum : trueTotal, isRowSum };
+}
 
 export interface AreaScheduleProps {
   readonly design: Design;
@@ -27,6 +40,7 @@ function useRank(use: FloorUse): number {
 export function AreaSchedule({ design }: AreaScheduleProps) {
   const floors = [...design.floors].sort((a, b) => b.level - a.level || useRank(a.use) - useRank(b.use));
   const total = floors.reduce((sum, floor) => sum + floor.areaM2, 0);
+  const shown = scheduleTotal(floors.map((floor) => floor.areaM2));
   const levelCount = new Set(floors.map((floor) => floor.level)).size;
   const { totals } = design;
 
@@ -61,7 +75,7 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
                 {USE_LABELS[floor.use]}
               </td>
               <td className="num">{formatMetres(floor.topM - floor.baseM, 2)}</td>
-              <td className="num">{formatM2(floor.areaM2)}</td>
+              <td className="num">{formatM2Tenths(floor.areaM2)}</td>
             </tr>
           ))}
         </tbody>
@@ -71,31 +85,34 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
               Total, {formatNumber(levelCount)} floors
             </th>
             <td className="num" data-testid="schedule-total">
-              {formatM2(total)}
+              {formatM2Tenths(shown.shownM2)}
             </td>
           </tr>
         </tfoot>
       </table>
       </div>
+      <p className="schedule-note" data-testid="schedule-note">
+        {shown.isRowSum ? 'Total = sum of the rows above.' : 'Rows are rounded to 0.1 m².'}
+      </p>
       <p className="scroll-hint">Scroll sideways to see every column.</p>
       {Math.abs(total - totals.grossFloorAreaM2) > AREA_TOLERANCE_M2 ? (
         <p className="notice notice--fail" role="alert">
-          The floors add up to {formatM2(total)}, but the design total says {formatM2(totals.grossFloorAreaM2)}. Treat these
+          The floors add up to {formatM2Tenths(total)}, but the design total says {formatM2Tenths(totals.grossFloorAreaM2)}. Treat these
           figures with caution and report the plot you drew.
         </p>
       ) : null}
       <dl className="facts facts--split">
         <div className="facts__row">
           <dt>Main use</dt>
-          <dd className="num">{formatM2(totals.mainUseFloorAreaM2)}</dd>
+          <dd className="num">{formatM2Tenths(totals.mainUseFloorAreaM2)}</dd>
         </div>
         <div className="facts__row">
           <dt>Parking</dt>
-          <dd className="num">{formatM2(totals.parkingFloorAreaM2)}</dd>
+          <dd className="num">{formatM2Tenths(totals.parkingFloorAreaM2)}</dd>
         </div>
         <div className="facts__row">
           <dt>Sellable area</dt>
-          <dd className="num">{formatM2(totals.sellableAreaM2)}</dd>
+          <dd className="num">{formatM2Tenths(totals.sellableAreaM2)}</dd>
         </div>
       </dl>
     </section>

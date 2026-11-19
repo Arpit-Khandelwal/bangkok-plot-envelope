@@ -67,4 +67,15 @@ describe('phone layout', () => {
     expect(container.querySelector('details.site-bar__more .presets')).not.toBeNull();
     expect(container.querySelector('.site-bar__more')?.hasAttribute('open')).toBe(false);
   });
+
+  it('always renders the zone code and keeps the full building-type names for assistive tech', () => {
+    stubPhone(true);
+    const zone = { status: 'single', zone: { code: 'ย.7', planVersion: '2556' } } as const;
+    const { container } = render(<SiteBar zoneLookup={zone} dataStatus={{ state: 'ready' }} />);
+    const code = container.querySelector('.zone-chip__code');
+    expect(code?.textContent).toBe('ย.7');
+    expect(code?.classList.contains('thai')).toBe(true);
+    expect(screen.getByRole('radio', { name: 'Condominium' })).toBeTruthy();
+    expect(container.querySelector('.segmented__short')?.textContent).toBe('Condo');
+  });
 });

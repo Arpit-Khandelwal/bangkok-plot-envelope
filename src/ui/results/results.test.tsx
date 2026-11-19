@@ -2,15 +2,14 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { Check } from '../../core/types';
+import type { Check, Design } from '../../core/types';
 import { useAppStore } from '../../state/store';
 import { sampleEvaluation } from '../fixtures/sampleEvaluation';
-import { formatM2 } from '../format';
 import { RuleList } from '../rules/RuleList';
 import { resetStore } from '../testing/storeReset';
 import { evaluate } from '../../core/evaluate';
 import { NEIGHBOUR, rect, road, scenario } from '../../core/pipeline/test-scenarios';
-import { AreaSchedule } from './AreaSchedule';
+import { AreaSchedule, scheduleTotal } from './AreaSchedule';
 import { Checklist, checklistSummary } from './Checklist';
 import { DesignSwitcher } from './DesignSwitcher';
 import { WhatIfNotice } from './WhatIfNotice';
@@ -58,19 +57,37 @@ describe('checklistSummary', () => {
 });
 
 describe('AreaSchedule', () => {
-  it('shows a total equal to the sum of the rows and the design total', () => {
+  it('shows rows to one decimal that add up to the displayed total within 0.05', () => {
     render(<AreaSchedule design={tower} />);
     const table = screen.getByRole('table');
     const bodyRows = within(table).getAllByRole('row').slice(1, -1);
-    const rowSum = bodyRows.reduce((sum, row) => {
+    const parse = (text: string): number => Number(text.replace(/[^\d.]/g, ''));
+    const areaTexts = bodyRows.map((row) => {
       const cells = within(row).getAllByRole('cell');
-      const areaText = cells[cells.length - 1]?.textContent ?? '';
-      return sum + Number(areaText.replace(/[^\d.]/g, ''));
-    }, 0);
+      return cells[cells.length - 1]?.textContent ?? '';
+    });
+    for (const text of areaTexts) expect(text).toMatch(/^[\d,]+\.\d m²$/);
+    const rowSum = areaTexts.reduce((sum, text) => sum + parse(text), 0);
+    const totalText = screen.getByTestId('schedule-total').textContent ?? '';
     expect(bodyRows).toHaveLength(tower.floors.length);
-    expect(rowSum).toBe(tower.totals.grossFloorAreaM2);
-    expect(screen.getByTestId('schedule-total').textContent).toBe(formatM2(tower.totals.grossFloorAreaM2));
+    expect(totalText).toMatch(/^[\d,]+\.\d m²$/);
+    expect(Math.abs(rowSum - parse(totalText))).toBeLessThanOrEqual(0.05 + 1e-9);
+    expect(Math.abs(parse(totalText) - tower.totals.grossFloorAreaM2)).toBeLessThanOrEqual(0.05 + 1e-9);
+    expect(screen.getByTestId('schedule-note').textContent).toBe('Total = sum of the rows above.');
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows the true total and a rounding note when the rounded rows drift', () => {
+    expect(scheduleTotal([0.04, 0.04, 0.04]).isRowSum).toBe(false);
+    expect(scheduleTotal([204.96, 339.04]).isRowSum).toBe(true);
+    const drifting: Design = {
+      ...tower,
+      floors: tower.floors.slice(0, 3).map((floor) => ({ ...floor, areaM2: 100.04 })),
+      totals: { ...tower.totals, grossFloorAreaM2: 300.12 },
+    };
+    render(<AreaSchedule design={drifting} />);
+    expect(screen.getByTestId('schedule-total').textContent).toBe('300.1 m²');
+    expect(screen.getByTestId('schedule-note').textContent).toBe('Rows are rounded to 0.1 m².');
   });
 
   it('shows a shared parking level as two rows with the same level', () => {

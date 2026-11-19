@@ -42,7 +42,8 @@ function Verdict({ view, design }: Pick<PanelProps, 'view' | 'design'>) {
     return (
       <>
         <ZoneNotice lookup={zoneLookup} />
-        <Problems problems={withoutRoadPrompt(others, roadPromptVisible)} />
+        {/* Which edge faces the road is beside the point when there is no verdict. */}
+        <Problems problems={withoutRoadPrompt(others, true)} />
       </>
     );
   }
@@ -64,6 +65,7 @@ export function Panel({ view, design, mapError }: PanelProps) {
     lastRevision.current = plotRevision;
     if (panelRef.current) panelRef.current.scrollTop = 0;
   }, [plotRevision]);
+  const hasNoVerdictZone = isOutsideCoverage(view.zoneLookup);
   const site = view.evaluation?.site ?? null;
   const measure = plot ? measurePlot(plot, site) : null;
 
@@ -83,7 +85,7 @@ export function Panel({ view, design, mapError }: PanelProps) {
       {measure ? (
         <>
           <PlotSummary measure={measure} station={view.station} />
-          <EdgeList edgeLengthsM={measure.edgeLengthsM} />
+          <EdgeList edgeLengthsM={measure.edgeLengthsM} showRoadPrompt={!hasNoVerdictZone} />
           <div className="verdict">
             <WhatIfNotice />
             <Verdict view={view} design={design} />

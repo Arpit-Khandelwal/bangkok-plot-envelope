@@ -12,10 +12,12 @@ import type { StartingWidth } from './startingWidth';
 export interface EdgeListProps {
   /** Length of each edge in metres, by index. */
   readonly edgeLengthsM: readonly number[];
+  /** False when the plot has no verdict (outside or across zones), where a road prompt is beside the point. */
+  readonly showRoadPrompt?: boolean;
 }
 
 /** One row per plot edge, lettered to match the markers on the map. */
-export function EdgeList({ edgeLengthsM }: EdgeListProps) {
+export function EdgeList({ edgeLengthsM, showRoadPrompt = true }: EdgeListProps) {
   const edges = useAppStore((state) => state.edges);
   const selectedEdge = useAppStore((state) => state.selectedEdge);
   const setEdge = useAppStore((state) => state.setEdge);
@@ -67,7 +69,7 @@ export function EdgeList({ edgeLengthsM }: EdgeListProps) {
       <h2 id="edges-heading" className="panel-section__title">
         Plot edges
       </h2>
-      {roadEdgeCount(edges) === 0 ? (
+      {showRoadPrompt && roadEdgeCount(edges) === 0 ? (
         <p className="prompt" role="status">
           Mark the edge that faces the road. Setbacks and the height limit are measured from it.
         </p>

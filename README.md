@@ -27,7 +27,7 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | Rule | What it does | Source and clause |
 |---|---|---|
 | Floor area ratio | Caps total floor area at 5 times the plot. Capped at 10 in the high-rise regime. No bonus is applied. | Plan 2556 cl. 14(1); MR 33 cl. 5 |
-| Use size limit | Condo over 10,000 m2 needs a road 30 m wide (with 30 m frontage) or a station within 500 m. Office over 1,000 m2 needs a 16 m road or a station; offices over 10,000 m2 are not allowed. | Plan 2556 cl. 14(11), 14(13), 36, 37 |
+| Use size limit | Condo over 10,000 m² needs a road 30 m wide (with 30 m frontage) or a station within 500 m. Office over 1,000 m² needs a 16 m road or a station; offices over 10,000 m² are not allowed. | Plan 2556 cl. 14(11), 14(13), 36, 37 |
 | Open space ratio | Open space at least 6% of total floor area. | Plan 2556 cl. 14(2) |
 | Open space on the plot | 30% of the plot for condo, 10% for office. | BMA 2544 cl. 52; MR 33 cl. 6 |
 | Open space on the largest floor | 30% (condo) or 10% (office) of the largest floor. | MR 55 cl. 33 |
@@ -36,18 +36,18 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | Clear space | 2 m around the building. | BMA 2544 cl. 55 |
 | Waterway setback | 3 m from a waterway under 10 m wide, 6 m otherwise. | MR 55 cl. 42 |
 | Height plane | Height at any point at most twice the distance to the far side of the nearest road. | MR 55 cl. 44 to 46; BMA 2544 cl. 49 |
-| High-rise threshold | Roof deck at 23 m or more, or 10,000 m2 or more, switches the building to the high-rise regime. | MR 33 cl. 1 |
+| High-rise threshold | Roof deck at 23 m or more, or 10,000 m² or more, switches the building to the high-rise regime. | MR 33 cl. 1 |
 | High-rise setback | 6 m from every boundary, whole building. | MR 33 cl. 4 |
-| High-rise road access | 12 m of frontage on a road at least 10 m wide (18 m above 30,000 m2). | MR 33 cl. 2 |
+| High-rise road access | 12 m of frontage on a road at least 10 m wide (18 m above 30,000 m²). | MR 33 cl. 2 |
 | Front access | Road-facing facade or front open space. Checked on the design only for the facade route. | BMA 2544 cl. 52(6), 53 |
-| Parking | Condo: one stall per 60 m2 unit or per 120 m2, whichever is greater. Office: one per 60 m2. | BMA 2544 cl. 84; MR 7 cl. 3 |
+| Parking | Condo: one stall per 60 m² unit or per 120 m², whichever is greater. Office: one per 60 m². | BMA 2544 cl. 84; MR 7 cl. 3 |
 | Floor-to-floor height | At least 2.6 m (condo), 3 m (office). | MR 55 cl. 22 |
-| Information only | Permeable planting, fire-truck road, environmental impact assessment trigger (80 units or 4,000 m2). Shown, not computed. | Plan 2556 cl. 14(2); MR 33 cl. 2, 3; ONEP guidance |
+| Information only | Permeable planting, fire-truck road, environmental impact assessment trigger (80 units or 4,000 m²). Shown, not computed. | Plan 2556 cl. 14(2); MR 33 cl. 2, 3; ONEP guidance |
 
 There are two rule sets, because the law switches the whole building from one to the other:
 
-- **Low-rise:** roof deck under 23 m and floor area under 10,000 m2. Ordinary setbacks (3 m at the sides).
-- **High-rise or extra-large:** 23 m or more, or 10,000 m2 or more. 6 m setback on every boundary for the whole building, open space of 30% of the plot, road access tests.
+- **Low-rise:** roof deck under 23 m and floor area under 10,000 m². Ordinary setbacks (3 m at the sides).
+- **High-rise or extra-large:** 23 m or more, or 10,000 m² or more. 6 m setback on every boundary for the whole building, open space of 30% of the plot, road access tests.
 
 So there is no single allowed volume. The tool computes one envelope per rule set and shows one design for each. Which one to build is the developer's actual choice.
 
@@ -73,7 +73,7 @@ So there is no single allowed volume. The tool computes one envelope per rule se
  static data in public/data (baked offline by data-pipeline/)
 ```
 
-- **Rules are data.** A zone, a plan version or a rule value is one data entry with its clause and confidence. A second zone (ย.6) was added as data only to test this.
+- **Rules are data.** A zone, a plan version or a rule value is one data entry with its clause and confidence. Only ย.7 ships. Adding a zone would be a data addition, not a code change, but none has been added to the tool.
 - **One evaluation feeds every view.** The map, the 3D layer, the checklist and the area table all read the same object, so they cannot disagree.
 - **Per-edge setbacks by subtraction.** No library offers a different setback per edge. The tool subtracts a strip along each edge at that edge's own distance, and splits triangles directly so the mesh stays closed.
 - **The height limit is an exact surface.** It is the lowest of the planes rising at 2:1 from the far side of each road, built as a mesh, not a stack of boxes.
@@ -141,16 +141,26 @@ public/data/   zones, stations, roads, buildings (11 chunks)
 research/      the research notes with sources
 ```
 
+## Performance
+
+Measured on the deployed build with a cold cache on a laptop:
+
+- First paint at 0.76 s (it was 5.2 s before the page shell and code splitting).
+- All scripts downloaded by 3.8 s. First surrounding buildings drawn at 3.1 s, all of them by 3.5 s.
+- Layout shift 0.
+- Entry script 144 KB gzip. The map library (306 KB gzip), the 3D model code (132 KB gzip) and the drawing tool (33 KB gzip) are separate chunks.
+- A typical plot evaluates in about 16 ms.
+
 ## Tests
 
 Counts from running the commands on 19 Nov 2026:
 
 | Command | Result |
 |---|---|
-| `pnpm test` | 64 files, 995 passed, 1 skipped |
-| `pnpm test:perf` | 3 files, 18 passed (timing budgets for evaluation and building clipping) |
+| `pnpm test` | 72 files, 1042 passed, 1 skipped |
+| `pnpm test:perf` | 4 files, 19 passed (timing budgets for evaluation and building clipping) |
 
-Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone and building type, golden cases worked by hand, invariants, a break list (self-crossing, tiny, slivered and out-of-zone plots, exact thresholds), URL round-trips, and component tests for the panel and layout. A `pnpm e2e` script exists but this repository has no Playwright config or end-to-end tests, so it runs nothing. The real-browser checks were done by hand.
+Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone and building type, golden cases worked by hand, invariants, a break list (self-crossing, tiny, slivered and out-of-zone plots, exact thresholds), URL round-trips, and component tests for the panel and layout. There is no automated browser suite. The browser checks (drawing, edges, 3D, phone layout, shareable link, outside-zone message) were done by hand on the deployed build.
 
 ## Known limits and things it gets wrong
 

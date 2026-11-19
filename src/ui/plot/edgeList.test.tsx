@@ -51,6 +51,12 @@ describe('EdgeList', () => {
     expect(screen.getByText('Mark the edge that faces the road. Setbacks and the height limit are measured from it.')).toBeTruthy();
   });
 
+  it('hides the road prompt when told there is no verdict for the plot', () => {
+    resetStore({ plot: SAMPLE_PLOT, edges: SAMPLE_EDGES.map((): EdgeSpec => ({ kind: 'neighbour' })) });
+    render(<EdgeList edgeLengthsM={LENGTHS} showRoadPrompt={false} />);
+    expect(screen.queryByText(/Mark the edge that faces the road/)).toBeNull();
+  });
+
   it('makes a second road join the first and offers a different road', async () => {
     const user = userEvent.setup();
     render(<EdgeList edgeLengthsM={LENGTHS} />);
