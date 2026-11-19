@@ -1,4 +1,5 @@
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
+import type { RoadCollection } from './roadWidth';
 
 export interface BuildingProperties {
   /** Height in metres. */
@@ -31,6 +32,8 @@ export interface SiteData {
   readonly buildings: FeatureCollection<Geometry, BuildingProperties>;
   readonly zones: FeatureCollection<Geometry, ZoneProperties>;
   readonly stations: FeatureCollection<Geometry, StationProperties>;
+  /** Road centrelines with estimated widths. Null when they could not be loaded: the tool works without them. */
+  readonly roads?: RoadCollection | null;
 }
 
 const BUILDINGS_DIRECTORY = '/data/buildings';
@@ -39,6 +42,8 @@ const DATA_FILES = {
   zones: '/data/zones.geojson',
   stations: '/data/stations.geojson',
 } as const;
+
+const ROADS_URL = '/data/roads.geojson';
 
 async function fetchCollection(url: string): Promise<FeatureCollection> {
   const response = await fetch(url);
@@ -76,6 +81,18 @@ function withIndex(collection: FeatureCollection): FeatureCollection<Geometry, B
   };
 }
 
+let cachedRoads: Promise<RoadCollection | null> | null = null;
+
+/** Road centrelines, loaded once. Roads are optional: a failure gives null, never an error. */
+export function loadRoads(): Promise<RoadCollection | null> {
+  if (!cachedRoads) {
+    cachedRoads = fetchCollection(ROADS_URL)
+      .then((roads): RoadCollection | null => roads as RoadCollection)
+      .catch((): null => null);
+  }
+  return cachedRoads;
+}
+
 let cached: Promise<SiteData> | null = null;
 
 /** Loads the baked site data once. Both the map layers and the zone lookup share it. */
@@ -85,12 +102,14 @@ export function loadSiteData(): Promise<SiteData> {
       fetchBuildings(),
       fetchCollection(DATA_FILES.zones),
       fetchCollection(DATA_FILES.stations),
+      loadRoads(),
     ])
       .then(
-        ([buildings, zones, stations]): SiteData => ({
+        ([buildings, zones, stations, roads]): SiteData => ({
           buildings: withIndex(buildings),
           zones: zones as FeatureCollection<Geometry, ZoneProperties>,
           stations: stations as FeatureCollection<Geometry, StationProperties>,
+          roads,
         }),
       )
       .catch((error: unknown) => {

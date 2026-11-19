@@ -18,7 +18,7 @@ export function isRoad(spec: EdgeSpec | undefined): spec is RoadSpec {
 }
 
 /** The spec an edge gets when its kind changes. A new road joins road-1 and takes its width. */
-export function specForKind(kind: EdgeKind, edges: readonly EdgeSpec[]): EdgeSpec {
+export function specForKind(kind: EdgeKind, edges: readonly EdgeSpec[], suggestedRoadWidthM?: number): EdgeSpec {
   switch (kind) {
     case 'neighbour':
       return { kind: 'neighbour' };
@@ -26,7 +26,7 @@ export function specForKind(kind: EdgeKind, edges: readonly EdgeSpec[]): EdgeSpe
       return { kind: 'waterway', widthM: DEFAULT_WATERWAY_WIDTH_M };
     case 'road': {
       const existing = edges.find((spec): spec is RoadSpec => isRoad(spec) && spec.roadId === DEFAULT_ROAD_ID);
-      return { kind: 'road', roadId: DEFAULT_ROAD_ID, rowWidthM: existing?.rowWidthM ?? DEFAULT_ROAD_WIDTH_M };
+      return { kind: 'road', roadId: DEFAULT_ROAD_ID, rowWidthM: existing?.rowWidthM ?? suggestedRoadWidthM ?? DEFAULT_ROAD_WIDTH_M };
     }
   }
 }

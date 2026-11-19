@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Assumptions, BuildingType, EdgeSpec, Interpretation, LngLat } from '../core/types';
 import { DEFAULT_ASSUMPTIONS, DEFAULT_INTERPRETATION } from './defaults';
 import { neighbourEdges, remapEdges } from './edges';
+import type { DecodedScenario } from './urlState';
 
 export interface PlotPreset {
   readonly plot: readonly LngLat[];
@@ -25,6 +26,8 @@ export interface AppState {
   /** Called by the map while the outline is drawn or edited. Edge settings follow the edit. */
   readonly setPlotFromMap: (plot: readonly LngLat[] | null) => void;
   readonly loadPreset: (preset: PlotPreset) => void;
+  /** Loads a whole scenario (from a shared link). Like `loadPreset`, the map redraws and frames it. */
+  readonly loadScenario: (scenario: DecodedScenario) => void;
   readonly clearPlot: () => void;
   readonly setEdge: (index: number, spec: EdgeSpec) => void;
   /** Sets the width of every edge on one road in a single update. */
@@ -65,6 +68,19 @@ export const useAppStore = create<AppState>((set) => ({
       assumptions: DEFAULT_ASSUMPTIONS[preset.buildingType],
       disabledRuleIds: [],
       selectedDesignId: null,
+      selectedEdge: null,
+      plotRevision: state.plotRevision + 1,
+    })),
+
+  loadScenario: (scenario) =>
+    set((state) => ({
+      plot: scenario.plot,
+      edges: scenario.edges,
+      buildingType: scenario.buildingType,
+      assumptions: scenario.assumptions,
+      interpretation: scenario.interpretation,
+      disabledRuleIds: scenario.disabledRuleIds,
+      selectedDesignId: scenario.selectedDesignId,
       selectedEdge: null,
       plotRevision: state.plotRevision + 1,
     })),

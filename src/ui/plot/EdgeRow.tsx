@@ -4,10 +4,10 @@ import { edgeLetter } from '../../map/edgeLabels';
 import { MAX_ROAD_WIDTH_M, MIN_ROAD_WIDTH_M } from '../../state/defaults';
 import { NumberField } from '../common/NumberField';
 import { formatMetres } from '../format';
-import { prefersReducedMotion } from '../motion';
 import { KIND_OPTIONS, roadEdgeCount } from './edgeChoices';
 import type { EdgeKind } from './edgeChoices';
 import { RoadChoice } from './RoadChoice';
+import { revealInPanel } from './scrollIntoPanel';
 
 const MAX_CANAL_WIDTH_M = 200;
 
@@ -16,20 +16,22 @@ export interface EdgeRowProps {
   readonly edges: readonly EdgeSpec[];
   readonly lengthM: number | null;
   readonly isSelected: boolean;
+  /** Where the road width started from, while the user has not changed it. */
+  readonly startNote?: string | null;
   readonly onSelect: (index: number) => void;
   readonly onKindChange: (index: number, kind: EdgeKind) => void;
   readonly onSpecChange: (index: number, spec: EdgeSpec) => void;
   readonly onRoadWidthChange: (roadId: string, widthM: number) => void;
 }
 
-export function EdgeRow({ index, edges, lengthM, isSelected, onSelect, onKindChange, onSpecChange, onRoadWidthChange }: EdgeRowProps) {
+export function EdgeRow({ index, edges, lengthM, isSelected, startNote = null, onSelect, onKindChange, onSpecChange, onRoadWidthChange }: EdgeRowProps) {
   const rowRef = useRef<HTMLLIElement>(null);
   const spec: EdgeSpec = edges[index] ?? { kind: 'neighbour' };
   const letter = edgeLetter(index);
 
   useEffect(() => {
     if (!isSelected) return;
-    rowRef.current?.scrollIntoView?.({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    if (rowRef.current) revealInPanel(rowRef.current);
   }, [isSelected]);
 
   return (
@@ -71,7 +73,7 @@ export function EdgeRow({ index, edges, lengthM, isSelected, onSelect, onKindCha
         <div className="edge-row__details">
           <NumberField
             label="Road width (right of way)"
-            hint="The full width between the property lines on both sides, including footpaths. The starting value is a guess: enter the measured width."
+            hint="The full width between the property lines on both sides, including footpaths."
             value={spec.rowWidthM}
             unit="m"
             min={MIN_ROAD_WIDTH_M}
@@ -79,6 +81,7 @@ export function EdgeRow({ index, edges, lengthM, isSelected, onSelect, onKindCha
             maxDecimals={1}
             onCommit={(widthM) => onRoadWidthChange(spec.roadId, widthM)}
           />
+          {startNote ? <p className="number-field__hint edge-row__start-note">{startNote}</p> : null}
           {roadEdgeCount(edges) > 1 ? <RoadChoice index={index} edges={edges} onChange={(next) => onSpecChange(index, next)} /> : null}
         </div>
       ) : null}

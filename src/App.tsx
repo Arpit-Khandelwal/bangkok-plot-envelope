@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MapView } from './map/MapView';
 import { useAppStore } from './state/store';
+import { useUrlSync } from './state/urlSync';
 import { useEvaluation } from './state/useEvaluation';
 import { Legend } from './ui/legend/Legend';
 import { buildModel, resolveDesign } from './ui/model/buildModel';
@@ -8,6 +9,7 @@ import { Panel } from './ui/panel/Panel';
 import { SiteBar } from './ui/sitebar/SiteBar';
 
 export function App() {
+  useUrlSync();
   const [mapError, setMapError] = useState<string | null>(null);
   const view = useEvaluation();
   const selectedDesignId = useAppStore((state) => state.selectedDesignId);

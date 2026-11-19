@@ -4,6 +4,7 @@ import { useAppStore } from '../../state/store';
 import type { DataStatus } from '../../state/useEvaluation';
 import { useIsPhone } from '../layout/useMediaQuery';
 import { BuildingTypeControl } from './BuildingTypeControl';
+import { CopyLinkButton } from './CopyLinkButton';
 import { PresetsMenu } from './PresetsMenu';
 import { ZoneChip } from './ZoneChip';
 
@@ -22,9 +23,12 @@ export function SiteBar({ zoneLookup, dataStatus }: SiteBarProps) {
     <nav className="site-bar__actions" aria-label="Plot">
       <PresetsMenu presets={PRESETS} />
       {hasPlot ? (
-        <button type="button" className="button button--quiet" onClick={clearPlot}>
-          Start over
-        </button>
+        <>
+          <button type="button" className="button button--quiet" onClick={clearPlot}>
+            Start over
+          </button>
+          <CopyLinkButton />
+        </>
       ) : null}
     </nav>
   );

@@ -35,3 +35,16 @@ export const DEFAULT_ROAD_WIDTH_M = 8;
 export const DEFAULT_WATERWAY_WIDTH_M = 8;
 export const MIN_ROAD_WIDTH_M = 1;
 export const MAX_ROAD_WIDTH_M = 100;
+
+export const MAX_WATERWAY_WIDTH_M = 200;
+
+/** The range each assumption accepts in the interface, in stored units (shares are 0 to 1). */
+export const ASSUMPTION_LIMITS: Readonly<Record<keyof Assumptions, { readonly min: number; readonly max: number }>> = {
+  floorToFloorM: { min: 2.6, max: 8 },
+  parkingFloorToFloorM: { min: 2.4, max: 6 },
+  efficiency: { min: 0.3, max: 1 },
+  averageUnitM2: { min: 20, max: 2000 },
+  shareOfUnitsOver60M2: { min: 0, max: 1 },
+  parkingM2PerStall: { min: 20, max: 60 },
+  parapetM: { min: 0, max: 10 },
+};
