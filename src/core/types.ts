@@ -162,6 +162,13 @@ export interface HeightPlane {
 export interface GfaLimit {
   readonly ruleId: string;
   readonly limitM2: number;
+  /**
+   * Which floor area the limit counts. `mainUse` excludes parking floors: the plan measures
+   * offices by operating area (พื้นที่ประกอบการ), not total floor area.
+   */
+  readonly measure: 'totalFloorArea' | 'mainUseFloorArea';
+  /** True when the area must stay strictly under the limit, e.g. under 10,000 m2 to remain low-rise. */
+  readonly exclusive: boolean;
 }
 
 export interface OpenSpaceRequirement {
@@ -192,9 +199,11 @@ export interface RegimeRules {
   readonly roofDeckCapM: number | null;
   readonly roofDeckCapRuleId: string | null;
   readonly gfaLimits: readonly GfaLimit[];
-  /** The smallest of `gfaLimits`. */
+  /** The smallest `totalFloorArea` limit. */
   readonly maxGfaM2: number;
   readonly bindingGfaRuleId: string;
+  /** The smallest `mainUseFloorArea` limit, or null when there is none. */
+  readonly maxMainUseM2: number | null;
   readonly openSpace: readonly OpenSpaceRequirement[];
   readonly parking: ParkingRule;
   /** Legal minimum floor-to-floor height for this building type. */

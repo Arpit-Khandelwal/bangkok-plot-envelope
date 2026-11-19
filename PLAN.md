@@ -13,8 +13,6 @@ Receipt ID: _pending submission_
 
 ---
 
-_Scope, timeline, architecture and risks are written here after the product direction is picked (Phase 2)._
-
 ## Direction
 
 **A rule-traceable envelope, plus the arithmetic slice of a yield calculator.** Picked by Arpit at T+0h40, then audited by an independent agent, which kept the direction and moved the spare effort from more legal depth to robustness and the real site.
