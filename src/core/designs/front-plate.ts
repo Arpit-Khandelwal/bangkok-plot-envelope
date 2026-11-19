@@ -31,7 +31,7 @@ const MIN_FRONT_EDGE_M = 6;
 /** The shallowest depth cut tried, in usable floor widths behind the strip. */
 const MIN_DEPTH_WIDTHS = 2;
 /** Depth cuts are found to within this distance, in at most this many steps. */
-const DEPTH_PRECISION_M = 0.25;
+const DEPTH_PRECISION_M = 0.5;
 const DEPTH_MAX_STEPS = 30;
 
 export interface FrontPlate {
@@ -69,8 +69,8 @@ function within(footprint: Region, edge: EdgeInfo, depthM: number): Region {
   return line === null ? footprint : clipHalfPlane(footprint, -line.n.x, -line.n.y, line.k + depthM);
 }
 
-function hasOpenSpace(site: Site, plate: Region): boolean {
-  return plate.length > 0 && frontOpenSpace(site, plate, FRONT_OPEN_SPACE_TALL_M).meets;
+function hasOpenSpace(site: Site, plate: Region, checkLink = true): boolean {
+  return plate.length > 0 && frontOpenSpace(site, plate, FRONT_OPEN_SPACE_TALL_M, checkLink).meets;
 }
 
 function meets53WithMargin(site: Site, plate: Region): boolean {
@@ -128,6 +128,61 @@ function strictPlate(site: Site, footprint: Region, governing: EdgeInfo, plain: 
   if (hasOpenSpace(site, main.basePlate) || meets53WithMargin(site, main.basePlate)) return withNarrow(main, main);
   const chosen = stripOnAnEdge(site, footprint, governing.index) ?? cutForClause53(site, stripped, governing) ?? main;
   return withNarrow(chosen, chosen === main ? main : plain);
+}
+
+/** Form B ("set back") keeps the nearest face this much beyond clause 53's 20 m from every road. */
+const SET_BACK_MARGIN_M = 0.5;
+export const SET_BACK_M = FRONT_FACADE_MAX_M + SET_BACK_MARGIN_M;
+
+/**
+ * Form B under the default reading: the plate more than 20 m from every road edge, so the building
+ * is not on the public road in clause 53's sense and clause 52(6) governs it. The ground in front,
+ * at least 20 m deep across the plot, is open and links the open space to the road. Null when the
+ * plot is not on a road, the rule is off, or no such plate has the 12 m open space along a sixth of
+ * its perimeter.
+ */
+export function setBackPlate(site: Site, regime: RegimeRules, footprint: Region): FrontPlate | null {
+  const on = regime.rules.some((r) => r.id === FRONT_ACCESS_RULE && !r.disabled);
+  if (!on || !onPublicRoad(site, regime)) return null;
+  let region: Region = footprint;
+  for (const edge of site.edges) {
+    if (edge.spec.kind !== 'road' || region.length === 0) continue;
+    region = beyond(region, edge, SET_BACK_M) ?? region;
+  }
+  const p = plateOn(region);
+  if (hasOpenSpace(site, p.basePlate)) return withNarrow(p, plateOn(footprint));
+  const governing = governingEdgeOf(site, regime.heightPlanes);
+  const cut = governing === null ? null : cutForOpenSpace(site, region, governing);
+  return cut === null ? null : withNarrow(cut, plateOn(footprint));
+}
+
+/**
+ * The deepest cut of a set-back plate, at least two floor widths deep, whose front open space runs
+ * along a sixth of its perimeter: a long plate is shortened at the back until its front, and the side
+ * open space joined to it, are a large enough share. Null when none is.
+ */
+function cutForOpenSpace(site: Site, region: Region, governing: EdgeInfo): Piece | null {
+  // The search first skips the costly link test and confirms the result; if that fails it searches
+  // again with the link tested at every step.
+  return searchOpenSpaceCut(site, region, governing, false) ?? searchOpenSpaceCut(site, region, governing, true);
+}
+
+function searchOpenSpaceCut(site: Site, region: Region, governing: EdgeInfo, checkLink: boolean): Piece | null {
+  const line = inwardLine(governing);
+  if (line === null) return null;
+  const depths = region.flatMap((poly) => poly.outer.map((q) => line.n.x * q.x + line.n.y * q.y - line.k));
+  if (depths.length === 0) return null;
+  const at = (d: number): Region => largestPiece(within(region, governing, d));
+  let lo = Math.min(...depths) + MIN_DEPTH_WIDTHS * MIN_MAIN_WIDTH_M;
+  let hi = Math.max(...depths);
+  if (!hasOpenSpace(site, at(lo), checkLink)) return null;
+  for (let i = 0; i < DEPTH_MAX_STEPS && hi - lo > DEPTH_PRECISION_M; i++) {
+    const mid = (lo + hi) / 2;
+    if (hasOpenSpace(site, at(mid), checkLink)) lo = mid;
+    else hi = mid;
+  }
+  const p = plateOn(at(lo));
+  return hasOpenSpace(site, p.basePlate) ? p : null;
 }
 
 export function frontPlate(site: Site, regime: RegimeRules, footprint: Region, strict: boolean): FrontPlate {

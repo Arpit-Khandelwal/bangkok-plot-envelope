@@ -5,7 +5,8 @@ import { planFarRuleIds } from '../rules';
 import type { Assumptions, BuildingType, Envelope, FloorUse, Region, RegimeRules, Scenario, Site } from '../types';
 import { MIN_MAIN_WIDTH_M, narrowLoss } from './habitable';
 import type { NarrowLoss } from './habitable';
-import { frontPlate } from './front-plate';
+import { frontPlate, setBackPlate } from './front-plate';
+import type { FrontPlate } from './front-plate';
 
 /** How floor areas are counted under the user's readings of the law. */
 export function areaReading(scenario: Scenario): AreaReading {
@@ -63,7 +64,14 @@ export interface DesignContext {
   readonly fireRoad: boolean;
   /** The stricter front open-space reading (`Interpretation.frontOpenSpaceOnPublicRoad`). */
   readonly strictFront: boolean;
+  /**
+   * Where the plate sits under the default reading: `onRoad` (Form A, clause 53) or `setBack`
+   * (Form B, more than 20 m from the road behind the clause 52(6) open space).
+   */
+  readonly form: DesignForm;
 }
+
+export type DesignForm = 'onRoad' | 'setBack';
 
 function ruleOn(regime: RegimeRules, id: string): boolean {
   return regime.rules.some((r) => r.id === id && !r.disabled);
@@ -83,10 +91,37 @@ export function designContext(
   regime: RegimeRules,
   envelope: Envelope,
 ): DesignContext {
+  const strictFront = scenario.interpretation.frontOpenSpaceOnPublicRoad;
+  return withPlate(site, scenario, assumptions, regime, envelope, frontPlate(site, regime, envelope.footprint, strictFront), 'onRoad');
+}
+
+/** The Form B context (see `setBackPlate`), or null under the stricter reading or when there is none. */
+export function setBackContext(
+  site: Site,
+  scenario: Scenario,
+  assumptions: Assumptions,
+  regime: RegimeRules,
+  envelope: Envelope,
+): DesignContext | null {
+  if (scenario.interpretation.frontOpenSpaceOnPublicRoad) return null;
+  const plate = setBackPlate(site, regime, envelope.footprint);
+  return plate === null ? null : withPlate(site, scenario, assumptions, regime, envelope, plate, 'setBack');
+}
+
+function withPlate(
+  site: Site,
+  scenario: Scenario,
+  assumptions: Assumptions,
+  regime: RegimeRules,
+  envelope: Envelope,
+  plate: FrontPlate,
+  form: DesignForm,
+): DesignContext {
   const cap = effectiveCap(regime);
   const strictFront = scenario.interpretation.frontOpenSpaceOnPublicRoad;
-  const { basePlate, tooNarrow } = frontPlate(site, regime, envelope.footprint, strictFront);
+  const { basePlate, tooNarrow } = plate;
   return {
+    form,
     site,
     regime,
     envelope,

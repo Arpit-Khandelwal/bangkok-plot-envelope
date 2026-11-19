@@ -1,9 +1,13 @@
 /** The evaluation once the site and the scenario are valid: rules, envelopes, designs. */
-import { areaReading, designContext } from '../designs/context';
+import { areaReading, designContext, setBackContext } from '../designs/context';
+import { chooseForms } from '../designs/forms';
+import type { SetBackStatus } from '../designs/forms';
+import { onPublicRoad } from '../designs/front-rule';
 import type { DesignContext } from '../designs/context';
 import { largestPiece, regionWidth } from '../geom';
 import { m } from '../rules/format';
 import { generateDesigns } from '../designs/variants';
+import { generateVariant } from '../designs/generate';
 import { nonDefaultReadings } from '../readings';
 import { planFarRatio, resolveRules } from '../rules';
 import type { Evaluation, Problem, RegimeId, RegimeResult, RegimeRules, Scenario, Site } from '../types';
@@ -12,6 +16,13 @@ import { withActualBinding } from './binding';
 import { heightOffProblem, nothingBuildableProblem, regimeEnvelope } from './envelopes';
 
 const REGIMES: readonly RegimeId[] = ['lowRise', 'highRise'];
+/** Form B is not tried when the on-road design is within this share of the floor-area cap. */
+const SET_BACK_GAIN_SHARE = 0.01;
+
+/** Forms apply where the front-access rule is on and the plot's allowed plate can stand on the road. */
+function formsOn(site: Site, regime: RegimeRules): boolean {
+  return regime.rules.some((r) => r.id === 'bma.front-access' && !r.disabled) && onPublicRoad(site, regime);
+}
 
 const TOO_SMALL =
   'the plate left after the setbacks and open space is too small to hold its floors together with the parking they need';
@@ -61,8 +72,7 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
   const hypothetical = scenario.disabledRuleIds.length > 0;
   const reading = areaReading(scenario);
   const contexts = { lowRise: contextOf('lowRise'), highRise: contextOf('highRise') };
-  const set = generateDesigns({
-    contexts,
+  const inputs = {
     base: {
       site,
       assumptions,
@@ -76,6 +86,32 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
     },
     allowedFar: planFarRatio(scenario.zone, scenario.buildingType),
     hypothetical,
+  };
+  const onRoadSet = generateDesigns({ ...inputs, contexts });
+  // Form B is tried only for a regime whose largest on-road design ends more than 1% short of the
+  // regime's floor-area cap (one at the cap cannot be beaten by more than that), and only when its
+  // own largest design, built first as a probe, has more floor area than the on-road one.
+  const setBackOf = (regime: RegimeId): { readonly ctx: DesignContext | null; readonly status: SetBackStatus } => {
+    const env = envelopes[regime];
+    const stop = onRoadSet.stops[regime];
+    if (env === null) return { ctx: null, status: { kind: 'impossible' } };
+    if (stop !== null && stop.sums.gross >= (1 - SET_BACK_GAIN_SHARE) * resolved[regime].maxGfaM2) return { ctx: null, status: { kind: 'atCap' } };
+    const ctx = setBackContext(site, scenario, assumptions, resolved[regime], env);
+    const probe = ctx === null ? null : generateVariant(ctx, { plateAreaM2: Number.POSITIVE_INFINITY });
+    if (probe === null) return { ctx: null, status: { kind: 'impossible' } };
+    if (probe.stack.sums.gross <= (stop?.sums.gross ?? 0)) return { ctx: null, status: { kind: 'smaller', grossM2: probe.stack.sums.gross } };
+    return { ctx, status: { kind: 'generated' } };
+  };
+  const formsApply = !scenario.interpretation.frontOpenSpaceOnPublicRoad && REGIMES.some((r) => contexts[r] !== null && formsOn(site, resolved[r]));
+  const lowB = formsApply ? setBackOf('lowRise') : null;
+  const highB = formsApply ? setBackOf('highRise') : null;
+  const setBack = { lowRise: lowB?.ctx ?? null, highRise: highB?.ctx ?? null };
+  const anySetBack = setBack.lowRise !== null || setBack.highRise !== null;
+  const set = chooseForms({
+    onRoad: onRoadSet,
+    setBack: anySetBack ? generateDesigns({ ...inputs, contexts: setBack }) : null,
+    status: lowB === null || highB === null ? null : { lowRise: lowB.status, highRise: highB.status },
+    site,
   });
   const result = (regime: RegimeId): RegimeResult => {
     const rules: RegimeRules = withActualBinding(resolved[regime], set.stops[regime], reading);

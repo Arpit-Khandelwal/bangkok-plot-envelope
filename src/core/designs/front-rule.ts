@@ -2,11 +2,13 @@
  * Which front-access clause of the Bangkok ordinance B.E. 2544 governs a building, and whether it is
  * met (DECISIONS.md B12). Shared by the generator and the check, so both judge the same way.
  *
- * A building is "on a public road" (อาคารอยู่ริมทางสาธารณะ) when the plot's allowed plate comes
- * within 20 m of a road edge and faces it: clause 53's building line must adjoin the road and lie
- * within 20 m of it. A plot that reaches the road only by a narrow access strip, as a flag plot does,
- * has no such plate: its building is not on a public road, and clause 52(6) applies to it on either
- * reading, with the open space linked to the road through open ground at least 6 m wide.
+ * A building is "on a public road" (อาคารอยู่ริมทางสาธารณะ) when it comes within 20 m of a road
+ * edge: clause 53 asks that its road-side building line be no more than 20 m from the road, so a
+ * building whose nearest face is further away cannot be on the road in the clause's sense, and
+ * clause 52(6) governs it on either reading, with the open space linked to the road through open
+ * ground at least 6 m wide. Every building is under exactly one of the two clauses. (A building
+ * behind a flag plot's access strip is such a building; so is Form B, a block set back on purpose.)
+ * `onPublicRoad` asks the same of the plot: whether its allowed plate can come that close.
  *
  *  - Not on a public road: clause 52(6), unless it is a residential building of at most 3 storeys
  *    (the clause's exception) or a building it does not list; then nothing is required.
@@ -60,15 +62,15 @@ export interface FrontInput {
 }
 
 export function frontVerdict(input: FrontInput, footprint: Region): FrontVerdict {
-  const { site, regime, strict, buildingType, storeys, heightM } = input;
-  const onRoad = onPublicRoad(site, regime);
+  const { site, strict, buildingType, storeys, heightM } = input;
+  const fa = frontAccess(site, footprint);
+  const onRoad = fa.nearestM <= FRONT_FACADE_MAX_M;
   const width = onRoad ? (strict ? frontOpenSpaceWidth(buildingType, storeys, heightM) : null) : offRoadWidth(buildingType, storeys, heightM);
   if (width !== null) {
     const os = frontOpenSpace(site, footprint, width);
     return { clause: 'clause52', met: os.meets, onRoad, os };
   }
   if (!onRoad) return { clause: 'none', met: true, onRoad: false };
-  const fa = frontAccess(site, footprint);
   return { clause: 'clause53', met: meetsClause53(fa), onRoad: true, fa };
 }
 

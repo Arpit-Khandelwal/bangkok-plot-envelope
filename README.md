@@ -40,7 +40,7 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | High-rise threshold | Roof deck at 23 m or more, or 10,000 m² or more, switches the building to the high-rise regime. | MR 33 cl. 1 |
 | High-rise setback | 6 m from every boundary, whole building. | MR 33 cl. 4 |
 | High-rise road access | 12 m of frontage on a road at least 10 m wide (18 m above 30,000 m²). | MR 33 cl. 2 |
-| Front access | A building on a public road must face it with more than an eighth of its perimeter, within 20 m (cl. 53); the cl. 52(6) front open space (6 m, 12 m over 3 storeys) is read as being for buildings not on a public road, such as one behind a flag-plot access. A setting applies the stricter reading, 52(6) for every building over 2 storeys or 8 m. | BMA 2544 cl. 52(6), 53 |
+| Front access | Two lawful forms, the one with more floor area offered: on the road, facing it with more than an eighth of the perimeter within 20 m (cl. 53), or set back more than 20 m behind a front open space of 6 m (12 m over 3 storeys) along a sixth of the perimeter, linked to the road (cl. 52(6)). A setting applies the stricter reading, 52(6) for every building over 2 storeys or 8 m. | BMA 2544 cl. 52(6), 53 |
 | Parking | Condo: one stall per 60 m² unit or per 120 m², whichever is greater. Office: one per 60 m². | BMA 2544 cl. 84; MR 7 cl. 3 |
 | Floor-to-floor height | At least 2.6 m (condo), 3 m (office). | MR 55 cl. 22 |
 | Fire road and planting | High-rise: the open ground outside a 6 m ring around the building must hold the permeable planting (half the open space). Pass or fail, by area; the generator shrinks the plate until it fits. | MR 33 cl. 3; Plan 2556 cl. 14(2) |

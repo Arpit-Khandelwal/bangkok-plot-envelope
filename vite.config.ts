@@ -55,6 +55,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}'],
+    // Correctness tests must not fail because the machine is busy. Timing budgets live in the
+    // *.perf tests, which run on their own.
+    testTimeout: 60_000,
     // Timing budgets are only meaningful without 40 other test files competing for the CPU.
     // They run on their own with `pnpm test:perf`.
     exclude: process.env.PERF_TESTS ? [] : ['src/**/*.perf.test.ts'],

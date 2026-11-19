@@ -197,7 +197,7 @@ function clearRuns(samples: readonly Sample[], clear: readonly boolean[]): Run[]
  * The ข้อ 52(6) front open space of width `widthM` around `footprint`. Whether a stretch reaches the
  * road through open ground 6 m wide is worked out only for stretches long enough to count.
  */
-export function frontOpenSpace(site: Site, footprint: Region, widthM: number): FrontOpenSpace {
+export function frontOpenSpace(site: Site, footprint: Region, widthM: number, checkLink = true): FrontOpenSpace {
   const segs = segmentsOf([site.ring, ...footprint.flatMap((p) => [p.outer, ...p.holes])]);
   const need = widthM - WIDTH_TOLERANCE_M - RAY_START_M;
   let perimeterM = 0;
@@ -215,6 +215,8 @@ export function frontOpenSpace(site: Site, footprint: Region, widthM: number): F
   const longest = Math.max(0, ...runs.map((r) => r.lengthM));
   const candidates = runs.filter((r) => r.lengthM >= neededM).sort((x, y) => y.lengthM - x.lengthM);
   if (!(perimeterM > 0) || candidates.length === 0) return { widthM, runM: longest, perimeterM, neededM, linked: false, meets: false };
+  // A search may skip the link (the costly part) and confirm it once on its result.
+  if (!checkLink) return { widthM, runM: candidates[0]?.lengthM ?? longest, perimeterM, neededM, linked: false, meets: true };
   const ground = linkedOpenGround(site, footprint);
   const reaches = (r: Run): boolean =>
     r.samples.some((s) => pointInRegion({ x: s.at.x + (s.normal.x * widthM) / 2, y: s.at.y + (s.normal.y * widthM) / 2 }, ground));

@@ -16,12 +16,13 @@ import type { CheckInput, Measured } from './context';
 
 const RULE = 'bma.front-access';
 
+export const ON_ROAD_FORM = 'Form: on the road.';
 export const DEFAULT_READING =
   'Read as: the front open space in clause 52(6) is for buildings not on a public road; a building on a public road must face it with more than one eighth of its perimeter (clause 53). A stricter reading is available in the settings.';
 export const STRICT_READING =
   'Read as (your setting): the front open space in clause 52(6) is required of every building it lists, on a public road or not; clause 53 covers only the others.';
 export const OFF_ROAD_READING =
-  'This building is not on a public road (the plot reaches the road only by an access), so clause 52(6) applies on either reading.';
+  'Form: set back. The building stands more than 20 m from the public road, so it is not on it in the sense of clause 53 (whose road-side building line must be within 20 m), and clause 52(6) applies on either reading.';
 
 function clause53Text(fa: FrontAccess, reading: string): { readonly required: string; readonly actual: string } {
   const needed = FRONT_FACADE_SHARE * fa.perimeterM;
@@ -53,7 +54,7 @@ export function frontAccessChecks(input: CheckInput, measured: Measured): readon
     { site: input.site, regime: input.regime, strict, buildingType: input.buildingType, storeys: levelCount(input.floors), heightM: measured.roofDeckM },
     measured.footprint,
   );
-  const reading = !verdict.onRoad ? OFF_ROAD_READING : strict ? STRICT_READING : DEFAULT_READING;
+  const reading = !verdict.onRoad ? OFF_ROAD_READING : `${ON_ROAD_FORM} ${strict ? STRICT_READING : DEFAULT_READING}`;
   const text =
     verdict.clause === 'clause53'
       ? clause53Text(verdict.fa, reading)

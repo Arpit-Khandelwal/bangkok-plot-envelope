@@ -50,7 +50,7 @@ describe('front access, default reading: clause 53 on a public road', () => {
   it('passes a 7-storey block 3 m from the road that faces it with over an eighth of its perimeter', () => {
     const c = blockCheck(SQUARE, 3, 7);
     expect(c.status).toBe('pass');
-    expect(c.required.startsWith(DEFAULT_READING)).toBe(true);
+    expect(c.required.startsWith(`Form: on the road. ${DEFAULT_READING}`)).toBe(true);
     expect(c.actual).toBe('The building comes 3 m from the road and has 44 m of façade facing it within 20 m.');
   });
 
@@ -78,13 +78,15 @@ describe('front access, default reading: clause 53 on a public road', () => {
     for (const d of e.designs) expect(frontCheck(d).status).toBe('pass');
   });
 
-  it('slides the slender tower toward the road to meet clause 53', () => {
+  it('places the slender tower in one form or the other, and it meets the clause of that form', () => {
     const e = expectOk(evaluate(scenario(rect(150, 150), [road(30), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR])));
     const tower = designById(e, 'slender-tower');
-    expect(frontCheck(tower).status).toBe('pass');
+    const c = frontCheck(tower);
+    expect(c.status).toBe('pass');
     const edge = e.site.edges[0];
     if (edge === undefined) throw new Error('no edge');
-    expect(minDistanceToSegment(tower.floors.filter((f) => f.level === 1).flatMap((f) => f.outline), edge.from, edge.to)).toBeLessThanOrEqual(20 + 1e-6);
+    const gap = minDistanceToSegment(tower.floors.flatMap((f) => f.outline), edge.from, edge.to);
+    expect(c.required.startsWith(gap > 20 ? OFF_ROAD_READING : 'Form: on the road.')).toBe(true);
   });
 });
 
@@ -92,7 +94,7 @@ describe('front access, stricter reading: clause 52(6) on a public road too', ()
   it('fails the 7-storey block 3 m from the road: it has no 12 m front open space', () => {
     const c = blockCheck(scenario(rect(50, 50), EDGES, STRICT), 3, 7);
     expect(c.status).toBe('fail');
-    expect(c.required.startsWith(STRICT_READING)).toBe(true);
+    expect(c.required.startsWith(`Form: on the road. ${STRICT_READING}`)).toBe(true);
   });
 
   it('keeps the generated block at least 12 m from the road, passing', () => {
