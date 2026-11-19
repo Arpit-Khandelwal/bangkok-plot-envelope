@@ -300,7 +300,42 @@ export interface Design {
   readonly checks: readonly Check[];
   /** True when no check has status `fail`. */
   readonly passes: boolean;
+  /** The building as closed solids, one per floor use, so each use can be coloured. */
+  readonly massing: readonly MassingPart[];
+  /** A cut through the building at right angles to the governing road, or null if there is no road. */
+  readonly section: SectionProfile | null;
+}
+
+export interface MassingPart {
+  readonly use: FloorUse;
   readonly mesh: Mesh;
+}
+
+/**
+ * A vertical cut at right angles to the governing road edge, through the middle of the design.
+ * Distances run from the plot's road edge into the plot. Heights are above ground.
+ */
+export interface SectionProfile {
+  readonly roadEdgeIndex: number;
+  readonly rowWidthM: number;
+  /** Required setback from the road edge. */
+  readonly setbackM: number;
+  /** How far the plot extends from the road edge along this cut. */
+  readonly plotDepthM: number;
+  /** Height limit = slope x (distance from road edge + rowWidthM). */
+  readonly slope: number;
+  readonly roofDeckCapM: number | null;
+  /** Where each floor sits along the cut: nearest and farthest distance from the road edge. */
+  readonly floors: readonly SectionFloor[];
+}
+
+export interface SectionFloor {
+  readonly level: number;
+  readonly use: FloorUse;
+  readonly baseM: number;
+  readonly topM: number;
+  readonly nearM: number;
+  readonly farM: number;
 }
 
 export interface RegimeResult {
