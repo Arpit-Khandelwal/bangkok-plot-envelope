@@ -23,11 +23,16 @@ export function Results({ evaluation, design }: ResultsProps) {
   const blocking = evaluation.problems.filter((problem) => problem.blocking);
   if (blocking.length > 0) return <Problems problems={blocking} />;
 
+  // The core's own "no design" note already says why; a second sentence would compete with it.
+  const hasDesignNote = notes.some((problem) => problem.code === 'no-design');
+
   if (!design) {
     return (
       <>
         <Problems problems={notes} />
-        <p className="notice">No design fits on this plot under the current rules. Try a larger plot or a wider road.</p>
+        {hasDesignNote ? null : (
+          <p className="notice">No design fits on this plot under the current rules. Try a larger plot or a wider road.</p>
+        )}
       </>
     );
   }
@@ -36,7 +41,7 @@ export function Results({ evaluation, design }: ResultsProps) {
   return (
     <>
       <Problems problems={notes} />
-      {evaluation.designs.length === 1 ? <p className="notice">Only one design fits this plot under the current rules.</p> : null}
+      {evaluation.designs.length === 1 && !hasDesignNote ? <p className="notice">Only one design fits this plot under the current rules.</p> : null}
       <ResultsAnnouncer design={design} qualified={qualified} />
       <DesignSwitcher designs={evaluation.designs} selectedId={design.id} qualified={qualified} />
       <div className="design-detail" key={design.id}>

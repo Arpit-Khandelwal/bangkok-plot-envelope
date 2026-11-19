@@ -21,18 +21,18 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'soi-large-far',
     label: 'Large plot on a narrow soi, far from the BTS',
     description:
-      'About 2,160 m² on a narrow soi, 580 m from the BTS: the 10,000 m² condo size limit applies.',
+      'About 2,460 m² on a 12 m soi, 581 m from the BTS: every design is capped at 10,000 m².',
     buildingType: 'condo',
     plot: [
-      [100.602816, 13.690336],
-      [100.603252, 13.690512],
+      [100.602843, 13.690291],
+      [100.603269, 13.69046],
       [100.60314, 13.690859],
       [100.602636, 13.690633],
     ],
     edges: [
       { kind: 'neighbour' },
       { kind: 'neighbour' },
-      { kind: 'road', roadId: 'soi', rowWidthM: 8 },
+      { kind: 'road', roadId: 'soi', rowWidthM: 12 },
       { kind: 'neighbour' },
     ],
   },
@@ -40,18 +40,18 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'soi-large-near',
     label: 'Same plot, near the BTS',
     description:
-      'Same size and shape on a soi 390 m from the BTS: being near the station lifts the 10,000 m² limit.',
+      'The same 2,460 m² on a 12 m soi, 384 m from the BTS: no size cap, so a tower reaches 12,295 m².',
     buildingType: 'condo',
     plot: [
-      [100.610089, 13.693582],
-      [100.610244, 13.693146],
+      [100.610042, 13.693558],
+      [100.61019, 13.693132],
       [100.610605, 13.693237],
       [100.610402, 13.693741],
     ],
     edges: [
       { kind: 'neighbour' },
       { kind: 'neighbour' },
-      { kind: 'road', roadId: 'soi', rowWidthM: 8 },
+      { kind: 'road', roadId: 'soi', rowWidthM: 12 },
       { kind: 'neighbour' },
     ],
   },
@@ -59,7 +59,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'sukhumvit-wide-frontage',
     label: 'Sukhumvit frontage, 37 m wide',
     description:
-      '37 m of frontage on Sukhumvit Road, 430 m from a platform: both the road and station routes apply.',
+      '37 m of frontage on a 30 m road, 430 m from a platform: both routes pass, a tower reaches 10,397 m².',
     buildingType: 'condo',
     plot: [
       [100.603047, 13.701154],
@@ -78,7 +78,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'sukhumvit-narrow-frontage',
     label: 'Sukhumvit frontage, only 20 m',
     description:
-      '20 m of frontage on Sukhumvit Road: the road route fails, only the 380 m station distance lifts the limit.',
+      '20 m of frontage on a 30 m road fails that route, but 377 m from a platform lifts the cap (10,788 m²).',
     buildingType: 'condo',
     plot: [
       [100.609605, 13.685244],
@@ -97,7 +97,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'small-far-binds',
     label: 'Small plot, floor-area ratio is the limit',
     description:
-      'About 1,200 m² on a soi: the floor-area ratio, not the 10,000 m² size limit, caps the building.',
+      'About 1,210 m² on a 12 m soi: the floor area ratio caps a tower at 6,061 m², well under 10,000 m².',
     buildingType: 'condo',
     plot: [
       [100.605947, 13.687167],
@@ -108,7 +108,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     edges: [
       { kind: 'neighbour' },
       { kind: 'neighbour' },
-      { kind: 'road', roadId: 'soi', rowWidthM: 8 },
+      { kind: 'road', roadId: 'soi', rowWidthM: 12 },
       { kind: 'neighbour' },
     ],
   },
@@ -116,7 +116,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'flag-narrow-access',
     label: 'Flag-shaped plot, 9 m access strip',
     description:
-      'A flag-shaped plot reached by a 9 m strip: under 12 m of road frontage, so no high-rise is allowed.',
+      'A flag plot with a 9 m strip on a 12 m soi: under 12 m of frontage, so low-rise only (3,268 m²).',
     buildingType: 'condo',
     plot: [
       [100.603351, 13.687623],
@@ -129,7 +129,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
       [100.60317, 13.687534],
     ],
     edges: [
-      { kind: 'road', roadId: 'soi', rowWidthM: 8 },
+      { kind: 'road', roadId: 'soi', rowWidthM: 12 },
       { kind: 'neighbour' },
       { kind: 'neighbour' },
       { kind: 'neighbour' },
@@ -143,7 +143,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'corner-two-roads',
     label: 'Corner of Sukhumvit and a soi',
     description:
-      'Corner plot on Sukhumvit Road and a soi: two roads of different widths set the setbacks and height.',
+      'Corner of a 30 m road and a 10 m soi: only the 30 m road limits height; each road has its own setback.',
     buildingType: 'condo',
     plot: [
       [100.604814, 13.698938],
@@ -162,7 +162,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'office-16m-road',
     label: 'Office on a 16 m street',
     description:
-      'An office 780 m from a station with 30 m of frontage: a 16 m road decides if it can exceed 1,000 m².',
+      'Office 777 m from a station on a 16 m road: up to 10,000 m² of operating area, not 1,000 m².',
     buildingType: 'office',
     plot: [
       [100.615763, 13.684449],

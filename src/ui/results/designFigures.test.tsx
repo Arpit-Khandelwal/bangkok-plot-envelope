@@ -60,7 +60,7 @@ describe('Results without designs', () => {
     const evaluation = {
       ...sampleEvaluation,
       designs: [],
-      problems: [{ code: 'no-design' as const, message: 'Fewer than two designs fit.', blocking: false }],
+      problems: [{ code: 'height-limit-off' as const, message: 'Fewer than two designs fit.', blocking: false }],
     };
     render(<Results evaluation={evaluation} design={null} />);
     expect(screen.getByText('Fewer than two designs fit.')).toBeTruthy();

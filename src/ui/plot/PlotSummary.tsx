@@ -6,6 +6,8 @@ import type { PlotMeasure } from './plotMeasure';
 export interface PlotSummaryProps {
   readonly measure: PlotMeasure;
   readonly station: NearestStation | null;
+  /** False for an outline that crosses itself or has no area, where "0 m²" would be a false reading. */
+  readonly isAreaAvailable?: boolean;
 }
 
 function stationText(station: NearestStation): string {
@@ -15,7 +17,7 @@ function stationText(station: NearestStation): string {
 }
 
 /** Area, perimeter and nearest station, as a short schedule. */
-export function PlotSummary({ measure, station }: PlotSummaryProps) {
+export function PlotSummary({ measure, station, isAreaAvailable = true }: PlotSummaryProps) {
   return (
     <section className="panel-section" aria-labelledby="plot-heading">
       <h2 id="plot-heading" className="panel-section__title" tabIndex={-1}>
@@ -24,10 +26,14 @@ export function PlotSummary({ measure, station }: PlotSummaryProps) {
       <dl className="facts">
         <div className="facts__row facts__row--lead">
           <dt>Area</dt>
-          <dd>
-            <span className="figure">{formatM2(measure.areaM2)}</span>
-            <span className="facts__aside">{formatRaiNganWah(measure.areaM2)}</span>
-          </dd>
+          {isAreaAvailable ? (
+            <dd>
+              <span className="figure">{formatM2(measure.areaM2)}</span>
+              <span className="facts__aside">{formatRaiNganWah(measure.areaM2)}</span>
+            </dd>
+          ) : (
+            <dd>Not available for this outline</dd>
+          )}
         </div>
         <div className="facts__row">
           <dt>Perimeter</dt>

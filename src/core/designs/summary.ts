@@ -29,12 +29,23 @@ function reachesALimit(d: Draft, regime: RegimeRules, reading: AreaReading): boo
   return regime.gfaLimits.some((l) => measuredArea(l, sums, reading) >= limitCeiling(l) - AT_LIMIT_M2);
 }
 
-/** " It stops short of ... because of ..." when geometry, not a floor-area limit, ends the stack. */
+/** What ends a low-rise stack at the roof-deck cap: the lighter rules hold only below both thresholds. */
+function lowRiseCapCause(regime: RegimeRules, capM: number): string {
+  const sizeLimit = regime.gfaLimits.find((l) => l.exclusive);
+  const bounds = sizeLimit === undefined ? m(capM) : `${m(capM)} and ${m2(sizeLimit.limitM2)}`;
+  return `to stay under ${bounds}, which keeps the lighter low-rise rules; a high-rise is the way to build more`;
+}
+
+/** " It stops short of ..." when geometry, not a floor-area limit, ends the stack. */
 export function shortfallNote(d: Draft, regime: RegimeRules, stop: StopReason, reading: AreaReading): string {
   if (stop.kind === 'limit') return '';
   if (regime.gfaLimits.length === 0 || reachesALimit(d, regime, reading)) return '';
+  const lead = ` It stops short of the ${m2(regime.maxGfaM2)} floor-area limit`;
+  if (stop.kind === 'cap' && regime.regime === 'lowRise' && regime.roofDeckCapM !== null) {
+    return `${lead} ${lowRiseCapCause(regime, regime.roofDeckCapM)}.`;
+  }
   const cause = stop.kind === 'storeys' ? 'the storey cap of this tool' : ruleTitle(regime, stop.ruleId);
-  return ` It stops short of the ${m2(regime.maxGfaM2)} floor-area limit because of ${cause}, which is what binds here.`;
+  return `${lead} because of ${cause}.`;
 }
 
 export function lowRiseSummary(d: Draft, regime: RegimeRules, stop: StopReason, reading: AreaReading): string {
@@ -52,7 +63,7 @@ function comparedWith(d: Draft, target: AreaSums): string {
   const gap = target.gross - d.totals.grossFloorAreaM2;
   if (gap <= AT_LIMIT_M2) return 'The same floor area as the high-rise';
   if (target.main - d.totals.mainUseFloorAreaM2 <= AT_LIMIT_M2) {
-    return `The same main-use area as the high-rise but ${m2(gap)} less in all, because its smaller parking floors hold the stalls with less spare area,`;
+    return `The same main-use area as the high-rise but ${m2(gap)} less in all, as its smaller parking floors leave less spare area,`;
   }
   return `${m2(gap)} less floor area than the high-rise`;
 }

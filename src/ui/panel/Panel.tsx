@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Design, Problem } from '../../core/types';
+import { hasGeometryProblem, hasNoUsableArea } from '../../state/geometryProblem';
 import { useAppStore } from '../../state/store';
 import type { EvaluationView } from '../../state/useEvaluation';
 import { AssumptionsForm } from '../assumptions/AssumptionsForm';
@@ -35,6 +36,8 @@ function Verdict({ view, design }: Pick<PanelProps, 'view' | 'design'>) {
       </p>
     );
   }
+  // An unusable outline is the only reason there is no result: nothing about zones or roads applies yet.
+  if (hasGeometryProblem(evaluation?.problems)) return <Problems problems={evaluation?.problems ?? []} />;
   const others = evaluation?.problems.filter((problem) => !ZONE_PROBLEMS.includes(problem.code)) ?? [];
   // Without the zone map the zone is unknown, which is not the same as outside ย.7.
   if (dataStatus.state === 'error') return <Problems problems={withoutRoadPrompt(others, roadPromptVisible)} />;
@@ -65,13 +68,15 @@ export function Panel({ view, design, mapError }: PanelProps) {
     lastRevision.current = plotRevision;
     if (panelRef.current) panelRef.current.scrollTop = 0;
   }, [plotRevision]);
+  const problems = view.evaluation?.problems;
+  const isGeometryBroken = hasGeometryProblem(problems);
   const hasNoVerdictZone = isOutsideCoverage(view.zoneLookup);
   const site = view.evaluation?.site ?? null;
   const measure = plot ? measurePlot(plot, site) : null;
 
   return (
     <main ref={panelRef} className="panel" aria-label="Plot and results">
-      {view.dataStatus.state === 'error' ? (
+      {view.dataStatus.state === 'error' && !isGeometryBroken ? (
         <p className="notice notice--fail" role="alert">
           The zone map could not be loaded ({view.dataStatus.message}), so the zone cannot be checked and no verdict is given.
           Reload the page to try again.
@@ -84,8 +89,8 @@ export function Panel({ view, design, mapError }: PanelProps) {
       ) : null}
       {measure ? (
         <>
-          <PlotSummary measure={measure} station={view.station} />
-          <EdgeList edgeLengthsM={measure.edgeLengthsM} showRoadPrompt={!hasNoVerdictZone} />
+          <PlotSummary measure={measure} station={view.station} isAreaAvailable={!hasNoUsableArea(problems)} />
+          <EdgeList edgeLengthsM={measure.edgeLengthsM} showRoadPrompt={!hasNoVerdictZone && !isGeometryBroken} />
           <div className="verdict">
             <WhatIfNotice readings={view.evaluation?.ok ? view.evaluation.nonDefaultReadings : undefined} />
             <Verdict view={view} design={design} />

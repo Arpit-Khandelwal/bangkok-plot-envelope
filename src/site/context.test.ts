@@ -584,3 +584,60 @@ describe("locateZone by area", () => {
     expect(result).toEqual({ status: "single", zone: { code: "ย.7", planVersion: "2556" } });
   });
 });
+
+describe("locateZone for outlines with no usable area", () => {
+  // The bow-tie corners from the live report, in bow-tie order.
+  const BOW_TIE: MutLngLat[] = [
+    [100.602, 13.695],
+    [100.6025, 13.6954],
+    [100.602, 13.6954],
+    [100.6025, 13.695],
+  ];
+  const AROUND_BOW_TIE: [number, number] = [100.60225, 13.6952];
+
+  it("reports single, not outside, for a bow-tie inside one zone", () => {
+    const data = zones(zoneFeature("ย.7", polygonAround(AROUND_BOW_TIE, 500)));
+    expect(locateZone(BOW_TIE, data)).toEqual({ status: "single", zone: { code: "ย.7", planVersion: "2556" } });
+  });
+
+  it("reports straddles for a bow-tie across two zones", () => {
+    const half = (minE: number, maxE: number): Geometry => ({
+      type: "Polygon",
+      coordinates: [
+        closed([
+          offset(AROUND_BOW_TIE, minE, -500),
+          offset(AROUND_BOW_TIE, maxE, -500),
+          offset(AROUND_BOW_TIE, maxE, 500),
+          offset(AROUND_BOW_TIE, minE, 500),
+        ]),
+      ],
+    });
+    const data = zones(zoneFeature("ย.7", half(-500, 0)), zoneFeature("ย.8", half(0, 500)));
+    const result = locateZone(BOW_TIE, data);
+    expect(result.status).toBe("straddles");
+  });
+
+  it("reports straddles when only part of the bow-tie is in a zone", () => {
+    const data = zones(zoneFeature("ย.7", polygonAround(offset(AROUND_BOW_TIE, -30, 0), 30)));
+    expect(locateZone(BOW_TIE, data).status).toBe("straddles");
+  });
+
+  it("reports outside only when no sample is in any zone", () => {
+    const data = zones(zoneFeature("ย.7", polygonAround(offset(AROUND_BOW_TIE, 5000, 0), 100)));
+    expect(locateZone(BOW_TIE, data)).toEqual({ status: "outside" });
+  });
+
+  it("treats a flat (collinear) outline the same way", () => {
+    const flat: MutLngLat[] = [offset(CENTRE, -10, 0), offset(CENTRE, 0, 0), offset(CENTRE, 10, 0)];
+    const data = zones(zoneFeature("ย.7", polygonAround(CENTRE, 500)));
+    expect(locateZone(flat, data).status).toBe("single");
+  });
+
+  it("still uses the overlap test for a valid ring: a plot barely over a boundary straddles", () => {
+    const small: Geometry = {
+      type: "Polygon",
+      coordinates: [closed([offset(CENTRE, -500, -500), offset(CENTRE, 0, -500), offset(CENTRE, 0, 500), offset(CENTRE, -500, 500)])],
+    };
+    expect(locateZone(PLOT, zones(zoneFeature("ย.7", small))).status).toBe("straddles");
+  });
+});

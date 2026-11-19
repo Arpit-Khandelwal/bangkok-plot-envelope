@@ -2,6 +2,7 @@ import { intersection, regionArea, union } from "../core/geom";
 import type { LngLat, Polygon, Pt, Region, ZoneRef } from "../core/types";
 import type { SiteData } from "./siteData";
 import {
+  boundsContain,
   boundsIntersect,
   boundsOf,
   boundsOfGeometry,
@@ -170,10 +171,60 @@ function zoneRegion(zone: ParsedZone, projection: FlatProjection): Region {
   );
 }
 
+function ringNetArea(ring: PosRing): number {
+  let twice = 0;
+  for (const [a, b] of ringEdges(ring, true)) twice += a[0] * b[1] - b[0] * a[1];
+  return Math.abs(twice) / 2;
+}
+
+/** True when two edges that do not share a corner cross or touch. Rings are flat metres. */
+function isSelfIntersecting(ring: PosRing): boolean {
+  const edges = ringEdges(ring, true);
+  for (let i = 0; i < edges.length; i++) {
+    for (let j = i + 2; j < edges.length; j++) {
+      if (i === 0 && j === edges.length - 1) continue;
+      const first = edges[i];
+      const second = edges[j];
+      if (first && second && segmentSegmentDistance(first[0], first[1], second[0], second[1]) === 0) return true;
+    }
+  }
+  return false;
+}
+
+function zonesAt(point: Pos, zones: readonly ParsedZone[]): ZoneRef[] {
+  return zones
+    .filter((zone) => boundsContain(zone.bounds, point) && zone.geometry.polygons.some((polygon) => pointInPolygon(point, polygon)))
+    .map((zone) => zone.ref);
+}
+
+/**
+ * For an outline whose area means nothing (it crosses itself, or nets to about zero): sample its
+ * corners, edge midpoints and the centroid of the corners. One zone for every sample is `single`,
+ * a mix of zones or of zone and no zone is `straddles`, and no sample in any zone is `outside`.
+ */
+function locateBySampling(ring: PosRing, zones: readonly ParsedZone[]): ZoneLookup {
+  const midpoints = ringEdges(ring, true).map(([a, b]): Pos => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
+  const samples: readonly Pos[] = [...ring, ...midpoints, averagePoint(ring)];
+  const found = new Map<string, ZoneRef>();
+  let insideCount = 0;
+  for (const sample of samples) {
+    const here = zonesAt(sample, zones);
+    if (here.length > 0) insideCount += 1;
+    for (const ref of here) found.set(zoneKey(ref), ref);
+  }
+  const refs = [...found.values()];
+  const only = refs[0];
+  if (!only) return { status: "outside" };
+  if (refs.length === 1 && insideCount === samples.length) return { status: "single", zone: only };
+  return { status: "straddles", zones: refs };
+}
+
 /**
  * Which plan zone the plot is in, by area: `single` when one zone's polygons (holes respected) hold
  * all of the plot but at most the tolerance, `straddles` listing every zone that holds more than the
  * tolerance otherwise, and `outside` when none does. Zones are first filtered by bounding box.
+ * An outline that crosses itself or has about zero net area has no usable area, so it is located
+ * by sampling points instead.
  */
 export function locateZone(
   plot: readonly LngLat[],
@@ -187,6 +238,14 @@ export function locateZone(
   if (!plotBounds) return { status: "outside" };
 
   const projection = makeProjection(centroidOf(ring));
+  const flatRing = projectRing(projection, ring);
+  if (isSelfIntersecting(flatRing) || ringNetArea(flatRing) < ZONE_TOLERANCE_M2) {
+    const parsed = features.flatMap((feature) => {
+      const zone = feature ? parseZone(feature) : null;
+      return zone ? [zone] : [];
+    });
+    return locateBySampling(ring, parsed);
+  }
   const plotRegion = union([{ outer: toRegionRing(projection, ring), holes: [] }]);
   const plotArea = regionArea(plotRegion);
   if (!(plotArea > 0)) return { status: "outside" };

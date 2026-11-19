@@ -31,6 +31,14 @@ function foundCodes(lookup: ZoneLookup): ReactNode {
 
 /** The zone in the plan's own orange, or a plain chip when the plot is somewhere else. */
 export function ZoneChip({ lookup, hasPlot, dataStatus }: ZoneChipProps) {
+  if (hasPlot && dataStatus.state === 'not-checked') {
+    return (
+      <p className="zone-chip zone-chip--outside">
+        <span className="zone-chip__code">Zone not checked</span>
+        <span className="zone-chip__name">Fix the plot outline first</span>
+      </p>
+    );
+  }
   if (hasPlot && !lookup) {
     return (
       <p className="zone-chip zone-chip--outside">

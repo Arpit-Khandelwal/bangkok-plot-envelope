@@ -5,12 +5,15 @@ import { locateZone, nearestStation } from '../site/context';
 import type { NearestStation, ZoneLookup } from '../site/context';
 import { loadSiteData } from '../site/siteData';
 import type { SiteData } from '../site/siteData';
+import { hasGeometryProblem } from './geometryProblem';
 import { useAppStore } from './store';
 import type { AppState } from './store';
 
 export type DataStatus =
   | { readonly state: 'loading' }
   | { readonly state: 'ready' }
+  /** The outline is unusable, so the zone was not checked and nothing is claimed about it. */
+  | { readonly state: 'not-checked' }
   | { readonly state: 'error'; readonly message: string };
 
 export interface EvaluationView {
@@ -43,6 +46,15 @@ export function buildScenario(
     interpretation: inputs.interpretation,
     disabledRuleIds: inputs.disabledRuleIds,
   };
+}
+
+/**
+ * When the outline itself is unusable, no statement about zones is true or useful: the lookup is
+ * dropped and the data status says the zone was not checked. Pure.
+ */
+export function withGeometryPrecedence(view: EvaluationView): EvaluationView {
+  if (!hasGeometryProblem(view.evaluation?.problems)) return view;
+  return { ...view, zoneLookup: null, dataStatus: { state: 'not-checked' } };
 }
 
 function errorMessage(error: unknown): string {
@@ -93,8 +105,5 @@ export function useEvaluation(): EvaluationView {
     return evaluate(buildScenario(inputs, zoneLookup, station));
   }, [plot, isWaiting, edges, buildingType, assumptions, interpretation, disabledRuleIds, zoneLookup, station]);
 
-  return useMemo(
-    () => ({ evaluation, zoneLookup, station, dataStatus: status }),
-    [evaluation, zoneLookup, station, status],
-  );
+  return useMemo(() => withGeometryPrecedence({ evaluation, zoneLookup, station, dataStatus: status }), [evaluation, zoneLookup, station, status]);
 }

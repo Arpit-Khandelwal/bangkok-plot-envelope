@@ -141,7 +141,9 @@ describe('golden case 3: 30 x 40 m condo on a 6 m soi', () => {
     expect(low.floors.map((f) => Math.round(f.areaM2 * 10) / 10)).toEqual([816, 280.5, 535.5, 816, 816, 816, 795.6, 758.4]);
     expect(low.totals.grossFloorAreaM2).toBeCloseTo(5634, 0);
     expect(result.regimes.lowRise.rules.bindingGfaRuleId).toBe('mr33.highrise-threshold');
-    expect(low.summary).toContain('stops short');
+    expect(low.summary).toContain('stops short of the 6,000 m² floor-area limit to stay under 23 m');
+    expect(low.summary).toContain('a high-rise is the way to build more');
+    expect(low.summary).not.toContain('which is what binds');
   });
 
   it('gives the open-ground variant about 60% of the plate with the same storeys', () => {

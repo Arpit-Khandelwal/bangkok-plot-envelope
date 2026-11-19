@@ -199,10 +199,10 @@ describe('PRESETS', () => {
 // ---------- What each preset demonstrates ----------
 
 describe('what each preset demonstrates', () => {
-  it('soi-large-far: over 2,000 m2 on an 8 m soi, clearly beyond 500 m from a platform', () => {
+  it('soi-large-far: over 2,000 m2 on a 12 m soi, clearly beyond 500 m from a platform', () => {
     const preset = presetById('soi-large-far');
     expect(areaM2(project(preset.plot))).toBeGreaterThan(LARGE_PLOT_M2);
-    expect(roadEdges(preset).map((edge) => edge.spec.rowWidthM)).toEqual([8]);
+    expect(roadEdges(preset).map((edge) => edge.spec.rowWidthM)).toEqual([12]);
     if (site) expect(stationDistanceM(preset)).toBeGreaterThanOrEqual(STATION_LIMIT_M + STATION_MARGIN_M);
   });
 
@@ -211,7 +211,7 @@ describe('what each preset demonstrates', () => {
     const far = presetById('soi-large-far');
     expect(areaM2(project(preset.plot))).toBeGreaterThan(LARGE_PLOT_M2);
     expect(areaM2(project(preset.plot))).toBeCloseTo(areaM2(project(far.plot)), -2);
-    expect(roadEdges(preset).map((edge) => edge.spec.rowWidthM)).toEqual([8]);
+    expect(roadEdges(preset).map((edge) => edge.spec.rowWidthM)).toEqual([12]);
     if (site) expect(stationDistanceM(preset)).toBeLessThanOrEqual(STATION_LIMIT_M - STATION_MARGIN_M);
   });
 
