@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { MapView } from './map/MapView';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from './state/store';
 import { useUrlSync } from './state/urlSync';
 import { useEvaluation } from './state/useEvaluation';
 import { Legend } from './ui/legend/Legend';
 import { buildModel, resolveDesign } from './ui/model/buildModel';
 import { Panel } from './ui/panel/Panel';
+import { MapBoundary } from './ui/shell/MapBoundary';
+import { MapFallback } from './ui/shell/MapFallback';
 import { SiteBar } from './ui/sitebar/SiteBar';
+
+// MapLibre lives in its own chunk, so the site bar and panel render before it arrives.
+const MapView = lazy(() => import('./map/MapView').then((module) => ({ default: module.MapView })));
 
 export function App() {
   useUrlSync();
@@ -36,7 +40,11 @@ export function App() {
         {model ? <Legend /> : null}
       </div>
       <main className="stage" aria-label="Site map">
-        <MapView model={model} onDataError={setMapError} />
+        <MapBoundary>
+          <Suspense fallback={<MapFallback />}>
+            <MapView model={model} onDataError={setMapError} />
+          </Suspense>
+        </MapBoundary>
       </main>
       <Panel view={view} design={design} mapError={mapError} />
     </div>

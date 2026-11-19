@@ -508,3 +508,15 @@
   color: var(--rule);
   cursor: not-allowed;
 }
+
+/* ---------- Map loading and load failure (src/ui/shell; the shell in index.html mirrors it) ---------- */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}

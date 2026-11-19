@@ -6,17 +6,83 @@
     <meta name="description" content="Draw a plot in Bangkok and see what the building regulations allow you to build on it, in 3D." />
     <meta name="theme-color" content="#eef1ef" />
     <title>Buildable: Bangkok edition</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2312303a'/%3E%3Cpath d='M7 25V13l9-6 9 6v12z' fill='%23eef1ef'/%3E%3Crect x='13' y='17' width='6' height='8' fill='%23e8862e'/%3E%3C/svg%3E"
+    />
+    <!-- Critical CSS: paints the static shell in #root before any script or stylesheet arrives.
+         Values are copied from src/styles/tokens.css and global.css; keep them in step. -->
+    <style>
+      :root{--paper:#eef1ef;--paper-raised:#f8faf9;--ink:#12303a;--ink-soft:#4d6670;--rule:#c9d2cf;--panel-width:440px;--hairline:1px solid var(--rule);--radius:3px;
+        --font-display:'Bricolage Grotesque','Anuphan',system-ui,-apple-system,'Segoe UI','Noto Sans Thai',sans-serif;
+        --font-body:'Anuphan',system-ui,-apple-system,'Segoe UI','Noto Sans Thai',sans-serif}
+      *,*::before,*::after{box-sizing:border-box}
+      html{-webkit-text-size-adjust:100%}
+      body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:.9375rem;line-height:1.5}
+      h1,h2{margin:0;font-family:var(--font-display);font-weight:600;line-height:1.15}
+      .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;overflow-x:clip}
+      .map-overlay{display:contents}
+      .site-bar{order:0;position:relative;display:flex;align-items:center;height:56px;padding:6px 12px;background:var(--paper);border-bottom:var(--hairline)}
+      .site-bar__title{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;font-size:1.125rem}
+      .stage{order:1;position:sticky;top:0;z-index:10;height:clamp(260px,42vh,420px);height:clamp(260px,42dvh,420px);min-width:0;background:var(--paper)}
+      .map-loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-soft);font-size:.8125rem}
+      .panel{order:3;min-width:0;background:var(--paper);border-left:var(--hairline)}
+      .panel-section{padding:24px 16px;border-bottom:var(--hairline)}
+      .empty__title{font-size:1.75rem;margin-bottom:16px}
+      @media (min-width:481px){.panel-section{padding:24px}}
+      @media (min-width:900px){
+        html,body,#root{height:100vh;height:100dvh;overflow:hidden}
+        #root{overflow:clip}
+        .app{display:grid;grid-template-columns:minmax(0,1fr) var(--panel-width);grid-template-rows:minmax(0,1fr);height:100%;min-height:0;overflow:clip}
+        .stage{grid-column:1;grid-row:1;position:relative;top:auto;z-index:auto;height:auto;min-height:0;overflow:clip}
+        .site-bar{grid-column:1;grid-row:1;z-index:4;height:auto;align-self:start;justify-self:start;margin:16px;max-width:400px;padding:12px 16px;background:rgb(238 241 239/.94);border:1px solid var(--ink);border-radius:var(--radius)}
+        .site-bar__title{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal}
+        .panel{grid-column:2;grid-row:1;min-height:0;overflow-y:auto;box-shadow:-8px 0 24px rgb(18 48 58/.1);z-index:5}
+      }
+    </style>
     <!-- The basemap style, tiles and glyphs; MapLibre fetches them in CORS mode, hence crossorigin. -->
     <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Web fonts load without blocking the first paint; text shows in the fallback stack, then swaps. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Bricolage+Grotesque:wght@600;700&family=Sarabun:wght@400&display=swap"
+    />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Bricolage+Grotesque:wght@500;600;700&family=Sarabun:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Bricolage+Grotesque:wght@600;700&family=Sarabun:wght@400&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Bricolage+Grotesque:wght@600;700&family=Sarabun:wght@400&display=swap"
+      />
+    </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static shell: React replaces it on mount. Same elements and classes as the first screen of App. -->
+      <div class="app">
+        <div class="map-overlay">
+          <header class="site-bar">
+            <h1 class="site-bar__title">Buildable: Bangkok edition</h1>
+          </header>
+        </div>
+        <main class="stage" aria-label="Site map">
+          <div class="map-loading" role="status">Loading map</div>
+        </main>
+        <aside class="panel" aria-label="Plot and results">
+          <section class="panel-section empty" aria-labelledby="empty-heading">
+            <h2 id="empty-heading" class="empty__title">Draw your plot</h2>
+          </section>
+        </aside>
+      </div>
+      <noscript><p style="padding:16px">Buildable: Bangkok edition needs JavaScript to draw a plot and show the 3D map. Please enable JavaScript and reload.</p></noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
