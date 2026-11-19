@@ -1,5 +1,13 @@
 import type { Problem } from '../../core/types';
 
+/**
+ * While the edge list is asking for a road, the same direction is already on screen above
+ * the edges, so the matching problem is left out rather than shown a second time.
+ */
+export function withoutRoadPrompt(problems: readonly Problem[], promptVisible: boolean): readonly Problem[] {
+  return promptVisible ? problems.filter((problem) => problem.code !== 'no-road') : problems;
+}
+
 export interface ProblemsProps {
   readonly problems: readonly Problem[];
 }

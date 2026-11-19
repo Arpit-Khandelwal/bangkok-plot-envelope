@@ -1,37 +1,19 @@
 /* Area schedule and the rules list. */
 
 /* ---------- Area schedule ---------- */
+.schedule-scroll {
+  overflow-x: auto;
+}
+
 .schedule {
   width: 100%;
-  table-layout: fixed;
+  min-width: 17rem;
   border-collapse: collapse;
   font-size: var(--text-sm);
 }
 
-.schedule__level {
-  width: 3.5em;
-}
-
-.schedule__height {
-  width: 7em;
-}
-
-.schedule__area {
-  width: 7.5em;
-}
-
-@media (max-width: 420px) {
-  .schedule__level {
-    width: 2.75em;
-  }
-
-  .schedule__height {
-    width: 5em;
-  }
-
-  .schedule__area {
-    width: 6.5em;
-  }
+.schedule .num {
+  white-space: nowrap;
 }
 
 .schedule th,

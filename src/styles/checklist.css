@@ -8,12 +8,25 @@
   border-top: var(--hairline);
 }
 
+.checklist__summary {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 .check {
   display: grid;
-  grid-template-columns: 8.5em minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--space-2);
+  min-width: 0;
   padding: var(--space-3) 0;
   border-bottom: var(--hairline);
+}
+
+.check__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
 }
 
 .check--fail {
@@ -33,7 +46,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-top: var(--space-1);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -43,11 +55,9 @@
   color: var(--ink-soft);
 }
 
-@media (max-width: 420px) {
-  .check {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-1);
-  }
+/* Within a check the row gap already spaces the citations. */
+.check .citations {
+  margin-top: 0;
 }
 
 /* ---------- Citations ---------- */

@@ -149,13 +149,20 @@
   list-style: none;
 }
 
+/* A direction, not an error: nothing is wrong yet. */
 .prompt {
   margin-bottom: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px dashed var(--road);
-  border-radius: var(--radius);
-  background: var(--paper-raised);
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
+  border-left: 3px solid var(--road);
   font-weight: 500;
+}
+
+/* The shared line at the foot of the examples menu. */
+.presets__note {
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
 }
 
 @media (max-width: 480px) {

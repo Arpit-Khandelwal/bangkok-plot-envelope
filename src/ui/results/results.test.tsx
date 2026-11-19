@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Check } from '../../core/types';
 import { useAppStore } from '../../state/store';
 import { sampleEvaluation } from '../fixtures/sampleEvaluation';
 import { formatM2 } from '../format';
@@ -10,7 +11,7 @@ import { resetStore } from '../testing/storeReset';
 import { evaluate } from '../../core/evaluate';
 import { NEIGHBOUR, rect, road, scenario } from '../../core/pipeline/test-scenarios';
 import { AreaSchedule } from './AreaSchedule';
-import { Checklist } from './Checklist';
+import { Checklist, checklistSummary } from './Checklist';
 import { DesignSwitcher } from './DesignSwitcher';
 import { WhatIfNotice } from './WhatIfNotice';
 
@@ -35,6 +36,24 @@ describe('Checklist', () => {
     const links = screen.getAllByRole('link');
     expect(links[0]?.getAttribute('target')).toBe('_blank');
     expect(links[0]?.getAttribute('rel')).toBe('noreferrer');
+  });
+});
+
+describe('checklistSummary', () => {
+  it('counts passes and lists warnings and failures only when there are some', () => {
+    const [a] = tower.checks;
+    if (!a) throw new Error('need a check');
+    const make = (statuses: Check['status'][]): Check[] => statuses.map((status) => ({ ...a, status }));
+    expect(checklistSummary(make(['pass', 'pass', 'info']))).toBe('2 of 3 checks pass');
+    expect(checklistSummary(make(['pass', 'warn', 'fail', 'fail']))).toBe('1 of 4 checks pass, 1 to check on site, 2 fail');
+  });
+
+  it('renders the summary above rows that put the status and title on one line', () => {
+    const { container } = render(<Checklist checks={tower.checks} />);
+    expect(container.querySelector('.checklist__summary')?.textContent).toBe(checklistSummary(tower.checks));
+    const head = container.querySelector('.checklist > li .check__head');
+    expect(head?.querySelector('.status-mark')).toBeTruthy();
+    expect(head?.querySelector('h3')).toBeTruthy();
   });
 });
 
@@ -112,6 +131,10 @@ describe('DesignSwitcher', () => {
     const user = userEvent.setup();
     render(<DesignSwitcher designs={sampleEvaluation.designs} selectedId={lowRise.id} />);
     expect(screen.getByText('1 check failed')).toBeTruthy();
+    // Headers carry only the name; the selected design's summary is shown once below.
+    expect(screen.getAllByText(lowRise.summary)).toHaveLength(1);
+    expect(screen.queryByText(tower.summary)).toBeNull();
+    expect(screen.getByRole('button', { name: lowRise.name }).getAttribute('aria-pressed')).toBe('true');
     await user.click(screen.getByRole('button', { name: /Tower on podium/ }));
     expect(useAppStore.getState().selectedDesignId).toBe(tower.id);
   });

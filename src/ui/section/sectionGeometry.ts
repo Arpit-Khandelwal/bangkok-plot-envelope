@@ -87,3 +87,70 @@ export function clampLabelX(x: number, text: string, fontSize: number, width: nu
 }
 
 export const SECTION_MARGIN_X = MARGIN_X;
+
+/** Vertical room, in SVG units, that two labels need between their centres not to overlap. */
+export const LABEL_CLEARANCE = 14;
+const LIMIT_LABEL_SIZE = 11;
+const LIMIT_LABEL_OFFSET = 9;
+const LIMIT_LABEL_PAD = 3;
+
+export interface LimitLabelPlacement {
+  /** Centre of the label. */
+  readonly x: number;
+  readonly y: number;
+  /** Rotation in degrees so the text runs along the sloped line. */
+  readonly angleDeg: number;
+  readonly width: number;
+  readonly height: number;
+  /** "above" is the free side (outside the allowed envelope); "below" the building side. */
+  readonly side: 'above' | 'below';
+}
+
+/** Centre of the cap label ("23 m"), which sits just above the dashed cap line. */
+export function capLabelCentreY(layout: SectionLayout, capHeightM: number): number {
+  return layout.toY(capHeightM) - 5 - LIMIT_LABEL_SIZE / 2 + 1;
+}
+
+/**
+ * Places "Height limit" along the sloped line near its upper end, beside the line and not on
+ * the building side. If that would sit within `LABEL_CLEARANCE` of the cap label vertically, or
+ * outside the drawing, it moves to the other side of the line.
+ */
+export function placeLimitLabel(layout: SectionLayout, capHeightM: number | null, text: string): LimitLabelPlacement {
+  const { limitStart, limitEnd } = layout;
+  const dx = limitEnd.x - limitStart.x;
+  const dy = limitEnd.y - limitStart.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const textWidth = estimateTextWidth(text, LIMIT_LABEL_SIZE);
+  const width = textWidth + 2 * LIMIT_LABEL_PAD;
+  const height = LIMIT_LABEL_SIZE + 2 * LIMIT_LABEL_PAD;
+  const alongM = Math.min(length / 2, textWidth / 2 + 8);
+  const angleDeg = (Math.atan2(uy, ux) * 180) / Math.PI;
+  const capY = capHeightM === null ? null : capLabelCentreY(layout, capHeightM);
+
+  const at = (side: 'above' | 'below'): LimitLabelPlacement => {
+    const sign = side === 'above' ? 1 : -1;
+    // Unit normal pointing up and to the left of the rising line.
+    const nx = uy * sign;
+    const ny = -ux * sign;
+    return {
+      x: limitEnd.x - ux * alongM + nx * LIMIT_LABEL_OFFSET,
+      y: limitEnd.y - uy * alongM + ny * LIMIT_LABEL_OFFSET,
+      angleDeg,
+      width,
+      height,
+      side,
+    };
+  };
+  const fits = (placement: LimitLabelPlacement): boolean => {
+    const reach = (placement.width / 2) * Math.abs(Math.cos((angleDeg * Math.PI) / 180)) + (placement.height / 2) * Math.abs(Math.sin((angleDeg * Math.PI) / 180));
+    const inside = placement.x - reach >= MARGIN_X && placement.x + reach <= layout.width - MARGIN_X;
+    return inside && (capY === null || Math.abs(placement.y - capY) >= LABEL_CLEARANCE);
+  };
+  const above = at('above');
+  if (fits(above)) return above;
+  const below = at('below');
+  return fits(below) ? below : above;
+}

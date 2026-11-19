@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { EdgeSpec } from '../../core/types';
 import type { ZoneLookup } from '../../site/context';
 import { useAppStore } from '../../state/store';
 import type { EvaluationView } from '../../state/useEvaluation';
@@ -88,5 +89,25 @@ describe('Panel', () => {
     await user.type(field, '45');
     await user.tab();
     expect(useAppStore.getState().assumptions.averageUnitM2).toBe(45);
+  });
+
+  it('shows the road prompt once, not again as a problem', () => {
+    resetStore({ plot: SAMPLE_PLOT, edges: SAMPLE_EDGES.map((): EdgeSpec => ({ kind: 'neighbour' })) });
+    const message = 'Mark the edge that faces the road. Setbacks and the height limit are measured from it.';
+    const noRoad: EvaluationView = view({
+      evaluation: { ok: false, site: null, problems: [{ code: 'no-road', message, blocking: true }] },
+    });
+    render(<Panel view={noRoad} design={null} mapError={null} />);
+    expect(screen.getAllByText(message)).toHaveLength(1);
+  });
+
+  it('scrolls back to the top when an example is loaded, but not on ordinary edits', () => {
+    const { container } = render(<Panel view={view()} design={sampleEvaluation.designs[0] ?? null} mapError={null} />);
+    const panel = container.querySelector('.panel') as HTMLElement;
+    panel.scrollTop = 120;
+    act(() => useAppStore.getState().selectEdge(1));
+    expect(panel.scrollTop).toBe(120);
+    act(() => useAppStore.setState({ plotRevision: useAppStore.getState().plotRevision + 1 }));
+    expect(panel.scrollTop).toBe(0);
   });
 });

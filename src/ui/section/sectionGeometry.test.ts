@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SectionProfile } from '../../core/types';
-import { clampLabelX, layoutSection, limitHeightAt, VIEW_WIDTH } from './sectionGeometry';
+import { capLabelCentreY, clampLabelX, LABEL_CLEARANCE, layoutSection, limitHeightAt, placeLimitLabel, VIEW_WIDTH } from './sectionGeometry';
 
 const PROFILE: SectionProfile = {
   roadEdgeIndex: 0,
@@ -47,5 +47,33 @@ describe('clampLabelX', () => {
   it('keeps a label inside the frame', () => {
     expect(clampLabelX(0, 'Road width 12 m', 11, 400)).toBeGreaterThan(40);
     expect(clampLabelX(200, 'x', 11, 400)).toBe(200);
+  });
+});
+
+describe('placeLimitLabel', () => {
+  const profiles: SectionProfile[] = [10, 23, 36, 60, 120].flatMap((top) =>
+    [1, 2, 4].map((slope): SectionProfile => ({
+      ...PROFILE,
+      slope,
+      floors: [{ level: 1, use: 'residential', baseM: 0, topM: top, nearM: 6, farM: 40 }],
+    })),
+  );
+
+  it('never sits within the clearance of the cap label, or outside the drawing', () => {
+    for (const profile of profiles) {
+      const layout = layoutSection(profile);
+      const placed = placeLimitLabel(layout, profile.roofDeckCapM, 'Height limit');
+      const capY = capLabelCentreY(layout, profile.roofDeckCapM ?? 0);
+      expect(Math.abs(placed.y - capY)).toBeGreaterThanOrEqual(LABEL_CLEARANCE);
+      expect(placed.x).toBeGreaterThan(0);
+      expect(placed.x).toBeLessThan(layout.width);
+    }
+  });
+
+  it('runs along the line and is drawn above it when there is no cap', () => {
+    const layout = layoutSection(PROFILE);
+    const placed = placeLimitLabel(layout, null, 'Height limit');
+    expect(placed.angleDeg).toBeLessThan(0);
+    expect(placed.side).toBe('above');
   });
 });

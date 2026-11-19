@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { NamedPlotPreset } from '../../state/presets';
+import { ROAD_WIDTH_NOTE, type NamedPlotPreset } from '../../state/presets';
 import { useAppStore } from '../../state/store';
 
 export interface PresetsMenuProps {
@@ -29,6 +29,7 @@ export function PresetsMenu({ presets }: PresetsMenuProps) {
             </button>
           </li>
         ))}
+        <li className="presets__note">{ROAD_WIDTH_NOTE}</li>
       </ul>
     </details>
   );

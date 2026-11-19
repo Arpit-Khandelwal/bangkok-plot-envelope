@@ -35,14 +35,9 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
       <h2 id="schedule-heading" className="panel-section__title">
         Area schedule
       </h2>
+      <div className="schedule-scroll">
       <table className="schedule">
         <caption className="visually-hidden">Floor areas of {design.name}, top floor first</caption>
-        <colgroup>
-          <col className="schedule__level" />
-          <col />
-          <col className="schedule__height" />
-          <col className="schedule__area" />
-        </colgroup>
         <thead>
           <tr>
             <th scope="col">Level</th>
@@ -81,6 +76,8 @@ export function AreaSchedule({ design }: AreaScheduleProps) {
           </tr>
         </tfoot>
       </table>
+      </div>
+      <p className="scroll-hint">Scroll sideways to see every column.</p>
       {Math.abs(total - totals.grossFloorAreaM2) > AREA_TOLERANCE_M2 ? (
         <p className="notice notice--fail" role="alert">
           The floors add up to {formatM2(total)}, but the design total says {formatM2(totals.grossFloorAreaM2)}. Treat these

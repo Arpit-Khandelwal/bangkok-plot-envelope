@@ -95,3 +95,9 @@
   stroke-width: 3px;
   stroke-linejoin: round;
 }
+
+/* Paper behind a rotated label so the line does not run through the text. */
+.section__label-bg {
+  fill: var(--paper-raised);
+  stroke: none;
+}

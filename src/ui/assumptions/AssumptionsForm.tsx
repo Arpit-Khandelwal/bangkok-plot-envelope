@@ -71,7 +71,7 @@ export function AssumptionsForm() {
             aria-describedby={explainId}
           />
           <label htmlFor={switchId} className="switch__label">
-            Count parking floors toward FAR
+            Count parking floors toward the floor area ratio (FAR)
           </label>
         </div>
         <p id={explainId} className="number-field__hint">

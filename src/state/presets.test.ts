@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { EdgeSpec, LngLat } from '../core/types';
 import { locateZone, nearestStation } from '../site/context';
 import type { SiteData } from '../site/siteData';
-import { PRESETS, type NamedPlotPreset } from './presets';
+import { PRESETS, ROAD_WIDTH_NOTE, type NamedPlotPreset } from './presets';
 
 // ---------- Measurements (local flat projection, metres) ----------
 
@@ -177,10 +177,16 @@ describe('PRESETS', () => {
       });
     });
 
-    it('describes itself and says the road width is assumed', () => {
+    it('describes itself in one short sentence using m²', () => {
       expect(preset.label.length).toBeGreaterThan(0);
-      expect(preset.description).toMatch(/assumed/);
+      expect(preset.description.length).toBeLessThanOrEqual(115);
+      expect(preset.description).not.toMatch(/m2\b/);
     });
+  });
+
+  it('keeps the assumed-road-width note in one shared line', () => {
+    expect(ROAD_WIDTH_NOTE).toMatch(/assumed/);
+    PRESETS.forEach((preset) => expect(preset.description).not.toMatch(/assumed/));
   });
 
   it('includes at least two non-rectangular shapes, one of them concave', () => {

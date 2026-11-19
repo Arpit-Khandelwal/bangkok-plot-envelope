@@ -14,12 +14,14 @@ export interface NamedPlotPreset extends PlotPreset {
  * Together they trip each legal threshold. Road widths are assumed examples: in the real
  * tool the user confirms them.
  */
+export const ROAD_WIDTH_NOTE = 'Road widths in these examples are assumed. Enter the measured width for a real plot.';
+
 export const PRESETS: readonly NamedPlotPreset[] = [
   {
     id: 'soi-large-far',
     label: 'Large plot on a narrow soi, far from the BTS',
     description:
-      'About 2,160 m2 on Soi Phong Wet Anuson, 580 m from BTS Punnawithi: the 10,000 m2 condo limit binds (the 8 m soi width is an assumed example).',
+      'About 2,160 m² on a narrow soi, 580 m from the BTS: the 10,000 m² condo size limit applies.',
     buildingType: 'condo',
     plot: [
       [100.602816, 13.690336],
@@ -38,7 +40,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'soi-large-near',
     label: 'Same plot, near the BTS',
     description:
-      'Same size and shape on Soi Punnawithi 9, 390 m from BTS Punnawithi: being close to the station lifts the 10,000 m2 limit (the 8 m soi width is an assumed example).',
+      'Same size and shape on a soi 390 m from the BTS: being near the station lifts the 10,000 m² limit.',
     buildingType: 'condo',
     plot: [
       [100.610089, 13.693582],
@@ -57,7 +59,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'sukhumvit-wide-frontage',
     label: 'Sukhumvit frontage, 37 m wide',
     description:
-      '37 m of frontage on Sukhumvit Road, 430 m from a platform (no spot in this zone is farther than about 450 m, so the station route also applies); the 30 m road width is an assumed example.',
+      '37 m of frontage on Sukhumvit Road, 430 m from a platform: both the road and station routes apply.',
     buildingType: 'condo',
     plot: [
       [100.603047, 13.701154],
@@ -76,7 +78,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'sukhumvit-narrow-frontage',
     label: 'Sukhumvit frontage, only 20 m',
     description:
-      'Only 20 m of frontage on Sukhumvit Road: the 30 m road route fails on frontage, and only the 380 m station distance lifts the limit (the 30 m road width is an assumed example).',
+      '20 m of frontage on Sukhumvit Road: the road route fails, only the 380 m station distance lifts the limit.',
     buildingType: 'condo',
     plot: [
       [100.609605, 13.685244],
@@ -93,9 +95,9 @@ export const PRESETS: readonly NamedPlotPreset[] = [
   },
   {
     id: 'small-far-binds',
-    label: 'Small plot, floor-area ratio binds',
+    label: 'Small plot, floor-area ratio is the limit',
     description:
-      'About 1,200 m2 on Soi Sukhumvit 64, under 2,000 m2, so the floor-area ratio and not the 10,000 m2 size limit caps the building (the 8 m soi width is an assumed example).',
+      'About 1,200 m² on a soi: the floor-area ratio, not the 10,000 m² size limit, caps the building.',
     buildingType: 'condo',
     plot: [
       [100.605947, 13.687167],
@@ -114,7 +116,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'flag-narrow-access',
     label: 'Flag-shaped plot, 9 m access strip',
     description:
-      'A flag-shaped plot reached by a 9 m strip off Soi Siri Wanit Yaek 7: under 12 m of road frontage, so a high-rise is not allowed at all (the 8 m soi width is an assumed example).',
+      'A flag-shaped plot reached by a 9 m strip: under 12 m of road frontage, so no high-rise is allowed.',
     buildingType: 'condo',
     plot: [
       [100.603351, 13.687623],
@@ -141,7 +143,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'corner-two-roads',
     label: 'Corner of Sukhumvit and a soi',
     description:
-      'Corner plot on Sukhumvit Road and Soi Sukhumvit 93, two roads of different widths; both widths (30 m and 10 m) are assumed examples.',
+      'Corner plot on Sukhumvit Road and a soi: two roads of different widths set the setbacks and height.',
     buildingType: 'condo',
     plot: [
       [100.604814, 13.698938],
@@ -160,7 +162,7 @@ export const PRESETS: readonly NamedPlotPreset[] = [
     id: 'office-16m-road',
     label: 'Office on a 16 m street',
     description:
-      'An office on Soi Sukhumvit 101/1, 780 m from a station, with 30 m of frontage: the 16 m road test decides whether it can exceed 1,000 m2 (the mapped estimate is 10 m, so the 16 m width is an assumed example).',
+      'An office 780 m from a station with 30 m of frontage: a 16 m road decides if it can exceed 1,000 m².',
     buildingType: 'office',
     plot: [
       [100.615763, 13.684449],

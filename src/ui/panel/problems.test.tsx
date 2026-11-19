@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Problem, ProblemCode } from '../../core/types';
-import { Problems } from './Problems';
+import { Problems, withoutRoadPrompt } from './Problems';
 
 afterEach(cleanup);
 
@@ -14,5 +14,17 @@ describe('Problems', () => {
     render(<Problems problems={problems} />);
     for (const code of CODES) expect(screen.getByText(`Message for ${code}.`)).toBeTruthy();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
+  });
+});
+
+describe('withoutRoadPrompt', () => {
+  const problems: Problem[] = [
+    { code: 'no-road', message: 'Mark the edge.', blocking: true },
+    { code: 'no-design', message: 'No design.', blocking: false },
+  ];
+
+  it('drops the no-road problem only while the prompt is visible', () => {
+    expect(withoutRoadPrompt(problems, true).map((p) => p.code)).toEqual(['no-design']);
+    expect(withoutRoadPrompt(problems, false)).toHaveLength(2);
   });
 });

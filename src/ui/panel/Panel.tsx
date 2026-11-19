@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Design, Problem } from '../../core/types';
 import { useAppStore } from '../../state/store';
 import type { EvaluationView } from '../../state/useEvaluation';
@@ -11,7 +12,8 @@ import { WhatIfNotice } from '../results/WhatIfNotice';
 import { ZoneNotice } from '../zone/ZoneNotice';
 import { isOutsideCoverage } from '../zone/zoneCoverage';
 import { EmptyState } from './EmptyState';
-import { Problems } from './Problems';
+import { Problems, withoutRoadPrompt } from './Problems';
+import { roadEdgeCount } from '../plot/edgeChoices';
 
 const ZONE_PROBLEMS: readonly Problem['code'][] = ['outside-zone', 'unsupported-zone'];
 
@@ -25,6 +27,7 @@ export interface PanelProps {
 
 function Verdict({ view, design }: Pick<PanelProps, 'view' | 'design'>) {
   const { evaluation, zoneLookup, dataStatus } = view;
+  const roadPromptVisible = useAppStore((state) => roadEdgeCount(state.edges) === 0);
   if (dataStatus.state === 'loading') {
     return (
       <p className="notice" role="status">
@@ -34,28 +37,38 @@ function Verdict({ view, design }: Pick<PanelProps, 'view' | 'design'>) {
   }
   const others = evaluation?.problems.filter((problem) => !ZONE_PROBLEMS.includes(problem.code)) ?? [];
   // Without the zone map the zone is unknown, which is not the same as outside ย.7.
-  if (dataStatus.state === 'error') return <Problems problems={others} />;
+  if (dataStatus.state === 'error') return <Problems problems={withoutRoadPrompt(others, roadPromptVisible)} />;
   if (zoneLookup && isOutsideCoverage(zoneLookup)) {
     return (
       <>
         <ZoneNotice lookup={zoneLookup} />
-        <Problems problems={others} />
+        <Problems problems={withoutRoadPrompt(others, roadPromptVisible)} />
       </>
     );
   }
   if (!evaluation) return null;
-  if (!evaluation.ok) return <Problems problems={evaluation.problems} />;
+  if (!evaluation.ok) return <Problems problems={withoutRoadPrompt(evaluation.problems, roadPromptVisible)} />;
   return <Results evaluation={evaluation} design={design} />;
 }
 
 /** The results panel: plot, edges, verdict, assumptions and sources, top to bottom. */
 export function Panel({ view, design, mapError }: PanelProps) {
   const plot = useAppStore((state) => state.plot);
+  const plotRevision = useAppStore((state) => state.plotRevision);
+  const panelRef = useRef<HTMLElement>(null);
+  const lastRevision = useRef(plotRevision);
+
+  // An example was loaded or the plot cleared: start again from the top. Ordinary edits keep the scroll.
+  useEffect(() => {
+    if (lastRevision.current === plotRevision) return;
+    lastRevision.current = plotRevision;
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+  }, [plotRevision]);
   const site = view.evaluation?.site ?? null;
   const measure = plot ? measurePlot(plot, site) : null;
 
   return (
-    <aside className="panel" aria-label="Plot and results">
+    <aside ref={panelRef} className="panel" aria-label="Plot and results">
       {view.dataStatus.state === 'error' ? (
         <p className="notice notice--fail" role="alert">
           The zone map could not be loaded ({view.dataStatus.message}), so the zone cannot be checked and no verdict is given.

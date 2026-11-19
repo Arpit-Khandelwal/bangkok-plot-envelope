@@ -19,7 +19,7 @@ function withTotals(totals: Partial<Design['totals']>): Design {
 describe('DesignFigures', () => {
   it('shows counted and total floor area separately when they differ', () => {
     render(<DesignFigures design={withTotals({ farFloorAreaM2: 12000, grossFloorAreaM2: 16832 })} regime={regime} plotAreaM2={2500} />);
-    expect(screen.getByText('Floor area counted toward FAR')).toBeTruthy();
+    expect(screen.getByText('Floor area counted toward the floor area ratio (FAR)')).toBeTruthy();
     expect(screen.getByText('12,000 m²')).toBeTruthy();
     expect(screen.getByText(/Total floor area built: 16,832 m²/)).toBeTruthy();
   });
@@ -33,6 +33,17 @@ describe('DesignFigures', () => {
   it('says how much of the allowed space the design fills', () => {
     render(<DesignFigures design={withTotals({ envelopeVolumeShare: 0.58 })} regime={regime} plotAreaM2={2500} />);
     expect(screen.getByText(/This design fills 58% of the allowed space\. The allowed space is larger/)).toBeTruthy();
+  });
+});
+
+describe('DesignFigures grouping', () => {
+  it('puts storeys, height and units in the key row and the rest in a list with sellable area', () => {
+    const { container } = render(<DesignFigures design={first as Design} regime={regime} plotAreaM2={2500} />);
+    const key = [...container.querySelectorAll('.key-figures dt')].map((el) => el.textContent);
+    expect(key).toEqual(['Storeys', 'Height', 'Units']);
+    expect(screen.getByText('Sellable area (assumed efficiency)')).toBeTruthy();
+    expect(screen.getByText('Floor area ratio (FAR)')).toBeTruthy();
+    expect(container.querySelectorAll('.figure-list__row')).toHaveLength(6);
   });
 });
 

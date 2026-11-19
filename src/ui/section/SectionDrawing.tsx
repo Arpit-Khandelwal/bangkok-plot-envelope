@@ -2,7 +2,7 @@ import { useId } from 'react';
 import type { SectionProfile } from '../../core/types';
 import { formatMetres, formatNumber } from '../format';
 import { Dimension } from './Dimension';
-import { clampLabelX, estimateTextWidth, layoutSection, SECTION_MARGIN_X } from './sectionGeometry';
+import { clampLabelX, layoutSection, placeLimitLabel, SECTION_MARGIN_X } from './sectionGeometry';
 
 const LABEL_SIZE = 11;
 const ROAD_ROW = 16;
@@ -42,9 +42,7 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
   const setbackLabel = `Setback ${formatMetres(profile.setbackM)} from the plot edge`;
   const capLabel = profile.roofDeckCapM === null ? '' : `${formatNumber(profile.roofDeckCapM, 1)} m: High-rise rules start here`;
   const limitLabel = 'Height limit';
-  const labelRoomLeft = layout.limitEnd.x - SECTION_MARGIN_X;
-  const limitLabelFitsLeft = labelRoomLeft > estimateTextWidth(limitLabel, LABEL_SIZE) + 8;
-  const limitLabelY = Math.max(layout.limitEnd.y + 14, toY(layout.heightMaxM) + 12);
+  const limitPlacement = placeLimitLabel(layout, profile.roofDeckCapM, limitLabel);
   const scaleBarEnd = width - SECTION_MARGIN_X;
   const scaleBarStart = scaleBarEnd - SCALE_BAR_M * layout.scale;
 
@@ -87,14 +85,18 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
 
       <g className="section__limit">
         <line x1={layout.limitStart.x} y1={layout.limitStart.y} x2={layout.limitEnd.x} y2={layout.limitEnd.y} />
-        <text
-          x={limitLabelFitsLeft ? layout.limitEnd.x - 8 : layout.limitEnd.x + 8}
-          y={limitLabelY}
-          textAnchor={limitLabelFitsLeft ? 'end' : 'start'}
-          className="section__label section__label--limit section__label--halo"
-        >
-          {limitLabel}
-        </text>
+        <g transform={`translate(${limitPlacement.x} ${limitPlacement.y}) rotate(${limitPlacement.angleDeg})`}>
+          <rect
+            className="section__label-bg"
+            x={-limitPlacement.width / 2}
+            y={-limitPlacement.height / 2}
+            width={limitPlacement.width}
+            height={limitPlacement.height}
+          />
+          <text textAnchor="middle" dominantBaseline="central" className="section__label section__label--limit">
+            {limitLabel}
+          </text>
+        </g>
       </g>
 
       <Dimension

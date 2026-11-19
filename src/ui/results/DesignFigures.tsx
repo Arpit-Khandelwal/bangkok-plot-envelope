@@ -26,17 +26,25 @@ export function spaceShareSentences(share: number): string {
   return `${first} The allowed space is larger than the building because floor-area limits, not the outline, are what stop it growing.`;
 }
 
-function figures(design: Design, plotAreaM2: number): Figure[] {
+function keyFigures(design: Design): Figure[] {
   const totals = design.totals;
   return [
-    { label: 'Floor area ratio', value: formatRatio(totals.far), aside: totals.allowedFar > 0 ? `of ${formatRatio(totals.allowedFar)} allowed by the plan` : undefined },
     { label: 'Storeys', value: formatNumber(totals.storeys) },
-    // Shown so it never contradicts the 23 m high-rise threshold: 22.999 m reads 22.99 m, not 23 m.
-    { label: 'Roof deck', value: mVs(totals.roofDeckHeightM, HIGH_RISE_ROOF_DECK_M, 1).value, aside: `top ${formatMetres(totals.topHeightM)}` },
+    { label: 'Height', value: formatMetres(totals.topHeightM) },
     { label: 'Units', value: formatNumber(totals.units) },
+  ];
+}
+
+function otherFigures(design: Design, plotAreaM2: number): Figure[] {
+  const totals = design.totals;
+  return [
+    { label: 'Floor area ratio (FAR)', value: formatRatio(totals.far), aside: totals.allowedFar > 0 ? `of ${formatRatio(totals.allowedFar)} allowed by the plan` : undefined },
+    // Shown so it never contradicts the 23 m high-rise threshold: 22.999 m reads 22.99 m, not 23 m.
+    { label: 'Roof deck', value: mVs(totals.roofDeckHeightM, HIGH_RISE_ROOF_DECK_M, 1).value },
     { label: 'Parking spaces', value: formatNumber(totals.parkingProvided), aside: `${formatNumber(totals.parkingRequired)} required` },
     { label: 'Coverage', value: formatM2(totals.coverageM2), aside: plotAreaM2 > 0 ? `${formatPercent(totals.coverageM2 / plotAreaM2, 0)} of plot` : undefined },
     { label: 'Open space', value: formatM2(totals.openSpaceM2) },
+    { label: 'Sellable area (assumed efficiency)', value: formatM2(totals.sellableAreaM2) },
   ];
 }
 
@@ -51,7 +59,7 @@ export function DesignFigures({ design, regime, plotAreaM2 }: DesignFiguresProps
         {design.name} in figures
       </h2>
       <p className="headline">
-        <span className="headline__label">{sameArea ? 'Floor area' : 'Floor area counted toward FAR'}</span>
+        <span className="headline__label">{sameArea ? 'Floor area' : 'Floor area counted toward the floor area ratio (FAR)'}</span>
         <span className="headline__value">{formatM2(design.totals.farFloorAreaM2)}</span>
         <span className="headline__aside">Limit here: {formatM2(regime.maxGfaM2)}</span>
         {sameArea ? null : (
@@ -59,13 +67,21 @@ export function DesignFigures({ design, regime, plotAreaM2 }: DesignFiguresProps
         )}
       </p>
       <p className="headline__note">{spaceShareSentences(design.totals.envelopeVolumeShare)}</p>
-      <dl className="figures">
-        {figures(design, plotAreaM2).map((figure) => (
-          <div key={figure.label} className="figures__item">
+      <dl className="key-figures">
+        {keyFigures(design).map((figure) => (
+          <div key={figure.label} className="key-figures__item">
+            <dt>{figure.label}</dt>
+            <dd>{figure.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <dl className="figure-list">
+        {otherFigures(design, plotAreaM2).map((figure) => (
+          <div key={figure.label} className="figure-list__row">
             <dt>{figure.label}</dt>
             <dd>
-              <span className="figures__value">{figure.value}</span>
-              {figure.aside ? <span className="figures__aside">{figure.aside}</span> : null}
+              <span className="figure-list__value">{figure.value}</span>
+              {figure.aside ? <span className="figure-list__aside">{figure.aside}</span> : null}
             </dd>
           </div>
         ))}
