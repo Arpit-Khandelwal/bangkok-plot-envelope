@@ -1,0 +1,97 @@
+/* The map status line (src/ui/status/MapStatus.tsx): what is loading, a failure, or a note. */
+
+.map-status {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  /* Phone: the top of the map is clear; the controls and attribution sit at the bottom. */
+  top: var(--space-2);
+  left: var(--space-3);
+  right: var(--space-3);
+}
+
+.map-status__line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border: var(--hairline);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--paper-raised) 92%, transparent);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.map-status[data-kind='error'] .map-status__line {
+  border-color: var(--warn);
+  background: var(--warn-tint);
+  color: var(--ink);
+}
+
+.map-status__mark {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--glass);
+  animation: map-status-pulse 1.2s var(--ease) infinite alternate;
+}
+
+@keyframes map-status-pulse {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-status__mark {
+    animation: none;
+  }
+}
+
+.map-status__retry {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: 500 var(--text-xs) / 1.2 var(--font-body);
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease);
+}
+
+.map-status__retry:hover {
+  background: var(--paper);
+}
+
+.map-status__retry:active {
+  transform: translateY(1px);
+}
+
+.map-status__retry:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Desktop: bottom centre, between the zoom and scale controls (left, about 170px) and the
+ * attribution button (right), below the legend (48px up). */
+@media (min-width: 900px) {
+  .map-status {
+    top: auto;
+    bottom: 10px;
+    left: 170px;
+    right: 48px;
+  }
+}

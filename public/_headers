@@ -1,0 +1,15 @@
+# Cloudflare Workers static assets: custom response headers (not served as an asset).
+# https://developers.cloudflare.com/workers/static-assets/headers/
+# Without a rule, assets are sent with `Cache-Control: public, max-age=0, must-revalidate` and an
+# ETag. Matching rules are merged and repeated headers comma-joined, so no path matches two
+# rules that set Cache-Control.
+
+# Vite fingerprints every file in /assets/ (JS chunks, CSS, the MapLibre worker): a changed file
+# gets a new name, so these never need revalidating.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Baked site data keeps its name across rebakes. Fresh for 10 minutes, then served from cache
+# while the browser revalidates it in the background (ETag) for up to a day.
+/data/*
+  Cache-Control: public, max-age=600, stale-while-revalidate=86400

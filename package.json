@@ -11,7 +11,6 @@
     "test": "vitest run",
     "test:perf": "PERF_TESTS=1 vitest run --no-file-parallelism perf src/core/geom/breaklist.test.ts",
     "test:watch": "vitest",
-    "e2e": "playwright test",
     "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
@@ -26,7 +25,6 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.13",

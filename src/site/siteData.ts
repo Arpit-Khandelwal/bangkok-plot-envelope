@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, Geometry } from 'geojson';
+import type { FeatureCollection, Geometry } from 'geojson';
 import type { RoadCollection } from './roadWidth';
 
 export interface BuildingProperties {
@@ -29,14 +29,16 @@ export interface StationProperties {
 }
 
 export interface SiteData {
-  readonly buildings: FeatureCollection<Geometry, BuildingProperties>;
+  /**
+   * Not loaded here: the map streams the surrounding buildings part by part (see
+   * buildingParts.ts and map/buildingLoader.ts), so nothing else waits for 6.6 MB of footprints.
+   */
+  readonly buildings?: FeatureCollection<Geometry, BuildingProperties>;
   readonly zones: FeatureCollection<Geometry, ZoneProperties>;
   readonly stations: FeatureCollection<Geometry, StationProperties>;
   /** Road centrelines with estimated widths. Null when they could not be loaded: the tool works without them. */
   readonly roads?: RoadCollection | null;
 }
-
-const BUILDINGS_DIRECTORY = '/data/buildings';
 
 const DATA_FILES = {
   zones: '/data/zones.geojson',
@@ -55,32 +57,6 @@ async function fetchCollection(url: string): Promise<FeatureCollection> {
   return body as FeatureCollection;
 }
 
-interface BuildingsIndex {
-  readonly parts: readonly { readonly file: string }[];
-}
-
-/** Buildings are baked as several spatial chunks so no file is large. They load in parallel. */
-async function fetchBuildings(): Promise<FeatureCollection> {
-  const response = await fetch(`${BUILDINGS_DIRECTORY}/index.json`);
-  if (!response.ok) throw new Error(`buildings index returned ${response.status}`);
-  const index = (await response.json()) as BuildingsIndex;
-  if (!Array.isArray(index.parts)) throw new Error('buildings index has no parts list');
-  const parts = await Promise.all(index.parts.map((part) => fetchCollection(`${BUILDINGS_DIRECTORY}/${part.file}`)));
-  return { type: 'FeatureCollection', features: parts.flatMap((part) => part.features) };
-}
-
-function withIndex(collection: FeatureCollection): FeatureCollection<Geometry, BuildingProperties> {
-  return {
-    type: 'FeatureCollection',
-    features: collection.features.map(
-      (feature, index): Feature<Geometry, BuildingProperties> => ({
-        ...feature,
-        properties: { ...(feature.properties as Omit<BuildingProperties, 'i'>), i: index },
-      }),
-    ),
-  };
-}
-
 let cachedRoads: Promise<RoadCollection | null> | null = null;
 
 /** Road centrelines, loaded once. Roads are optional: a failure gives null, never an error. */
@@ -95,18 +71,12 @@ export function loadRoads(): Promise<RoadCollection | null> {
 
 let cached: Promise<SiteData> | null = null;
 
-/** Loads the baked site data once. Both the map layers and the zone lookup share it. */
+/** Loads the plan zones, stations and roads once. Both the map layers and the zone lookup share it. */
 export function loadSiteData(): Promise<SiteData> {
   if (!cached) {
-    cached = Promise.all([
-      fetchBuildings(),
-      fetchCollection(DATA_FILES.zones),
-      fetchCollection(DATA_FILES.stations),
-      loadRoads(),
-    ])
+    cached = Promise.all([fetchCollection(DATA_FILES.zones), fetchCollection(DATA_FILES.stations), loadRoads()])
       .then(
-        ([buildings, zones, stations, roads]): SiteData => ({
-          buildings: withIndex(buildings),
+        ([zones, stations, roads]): SiteData => ({
           zones: zones as FeatureCollection<Geometry, ZoneProperties>,
           stations: stations as FeatureCollection<Geometry, StationProperties>,
           roads,

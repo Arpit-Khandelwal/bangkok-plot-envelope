@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { Mesh } from '../core/types';
-import { buildPart, type ModelPart } from './modelLayer';
+import type { ModelPart } from './modelLayer';
+import { buildPart } from './modelScene';
 
 /** A 10 m cube: 8 corners, 12 triangles. */
 function cube(): Mesh {
