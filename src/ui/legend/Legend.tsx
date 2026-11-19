@@ -7,7 +7,7 @@ const ENTRIES: readonly LegendEntry[] = [
   { key: 'glass', label: 'Allowed space under this design’s rules' },
   { key: 'ghost', label: 'Allowed space under the other rule set' },
   { key: 'solid', label: 'The design' },
-  { key: 'context', label: 'Surrounding buildings, lighter where height is estimated' },
+  { key: 'context', label: 'Surrounding buildings (heights from satellite data; lighter blocks are estimates)' },
   { key: 'zone', label: 'Edge of zone ย.7' },
 ];
 

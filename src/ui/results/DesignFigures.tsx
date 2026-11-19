@@ -13,6 +13,17 @@ interface Figure {
   readonly aside?: string;
 }
 
+const AREA_TOLERANCE_M2 = 0.5;
+const SHARE_NOTE_THRESHOLD = 0.6;
+
+/** The share of allowed space the design fills, as a whole percentage held to 0 to 100. */
+export function spaceShareSentences(share: number): string {
+  const clamped = Number.isFinite(share) ? Math.min(Math.max(share, 0), 1) : 0;
+  const first = `This design fills ${formatPercent(clamped, 0)} of the allowed space.`;
+  if (clamped >= SHARE_NOTE_THRESHOLD) return first;
+  return `${first} The allowed space is larger than the building because floor-area limits, not the outline, are what stop it growing.`;
+}
+
 function figures(design: Design, plotAreaM2: number): Figure[] {
   const totals = design.totals;
   return [
@@ -28,6 +39,7 @@ function figures(design: Design, plotAreaM2: number): Figure[] {
 
 /** The headline floor area, the key figures, and the rule that stops more floor area. */
 export function DesignFigures({ design, regime, plotAreaM2 }: DesignFiguresProps) {
+  const sameArea = Math.abs(design.totals.grossFloorAreaM2 - design.totals.farFloorAreaM2) <= AREA_TOLERANCE_M2;
   const binding = regime.rules.find((rule) => rule.id === regime.bindingGfaRuleId);
 
   return (
@@ -36,10 +48,14 @@ export function DesignFigures({ design, regime, plotAreaM2 }: DesignFiguresProps
         {design.name} in figures
       </h2>
       <p className="headline">
-        <span className="headline__label">Total floor area</span>
-        <span className="headline__value">{formatM2(design.totals.grossFloorAreaM2)}</span>
+        <span className="headline__label">{sameArea ? 'Floor area' : 'Floor area counted toward FAR'}</span>
+        <span className="headline__value">{formatM2(design.totals.farFloorAreaM2)}</span>
         <span className="headline__aside">Limit here: {formatM2(regime.maxGfaM2)}</span>
+        {sameArea ? null : (
+          <span className="headline__aside">Total floor area built: {formatM2(design.totals.grossFloorAreaM2)}</span>
+        )}
       </p>
+      <p className="headline__note">{spaceShareSentences(design.totals.envelopeVolumeShare)}</p>
       <dl className="figures">
         {figures(design, plotAreaM2).map((figure) => (
           <div key={figure.label} className="figures__item">

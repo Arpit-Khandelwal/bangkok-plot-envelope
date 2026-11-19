@@ -24,7 +24,7 @@ export function Results({ evaluation, design }: ResultsProps) {
     return (
       <>
         <Problems problems={notes} />
-        <p className="notice notice--warn">No design fits on this plot under the current rules.</p>
+        <p className="notice">No design fits on this plot under the current rules. Try a larger plot or a wider road.</p>
       </>
     );
   }

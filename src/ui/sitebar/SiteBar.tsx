@@ -18,7 +18,7 @@ export function SiteBar({ zoneLookup, dataStatus }: SiteBarProps) {
 
   return (
     <header className="site-bar">
-      <h1 className="site-bar__title">Bangkok plot envelope</h1>
+      <h1 className="site-bar__title">Bangkok plot allowed space</h1>
       <ZoneChip lookup={zoneLookup} hasPlot={hasPlot} dataStatus={dataStatus} />
       <BuildingTypeControl />
       <nav className="site-bar__actions" aria-label="Plot">

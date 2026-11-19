@@ -12,8 +12,10 @@ export interface PlotMeasure {
  * and the results agree; otherwise measures the drawn outline directly.
  */
 export function measurePlot(plot: readonly LngLat[], site: Site | null): PlotMeasure {
-  if (site && site.edges.length === plot.length) {
-    return { areaM2: site.areaM2, perimeterM: site.perimeterM, edgeLengthsM: site.edges.map((edge) => edge.lengthM) };
+  if (site) {
+    // The core may reorder edges (clockwise plots), so look each drawn edge up by its source index.
+    const edgeLengthsM = plot.map((_, index) => site.edges.find((edge) => edge.sourceIndex === index)?.lengthM ?? 0);
+    return { areaM2: site.areaM2, perimeterM: site.perimeterM, edgeLengthsM };
   }
   const frame = makeFrame(plot);
   const points = plot.map((point) => toLocal(frame, point));

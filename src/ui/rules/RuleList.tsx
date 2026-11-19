@@ -13,8 +13,8 @@ const CATEGORY_ORDER: readonly { readonly category: RuleCategory; readonly headi
 ];
 
 const REGIME_NAMES: Readonly<Record<RegimeId, string>> = {
-  lowRise: 'Rules for a low-rise building',
-  highRise: 'Rules for a high-rise or extra-large building',
+  lowRise: 'Low-rise rules',
+  highRise: 'High-rise rules',
 };
 
 export interface RuleListProps {
@@ -34,7 +34,7 @@ export function RuleList({ regime, rules }: RuleListProps) {
         {REGIME_NAMES[regime]}
       </h2>
       <p className="panel-section__lede">
-        There are two rule sets. A building whose roof deck is 23 m or higher, or whose floor area is 10,000 m² or more, follows
+        There are two rule sets, Low-rise rules and High-rise rules. A building whose roof deck is 23 m or higher, or whose floor area is 10,000 m² or more, follows
         the stricter set for the whole building.
       </p>
       {groups.map((group) => (

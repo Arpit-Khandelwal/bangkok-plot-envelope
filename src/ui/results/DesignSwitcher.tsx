@@ -19,6 +19,7 @@ function cellClass(design: Design, selectedId: string): string {
 /** The designs side by side, one column each. The column header selects the design. */
 export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
   const selectDesign = useAppStore((state) => state.selectDesign);
+  const showBoth = designs.some((design) => Math.abs(design.totals.grossFloorAreaM2 - design.totals.farFloorAreaM2) > 0.5);
 
   return (
     <section className="panel-section" aria-labelledby="designs-heading">
@@ -47,13 +48,23 @@ export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
         </thead>
         <tbody>
           <tr>
-            <th scope="row">Floor area</th>
+            <th scope="row">{showBoth ? 'Floor area counted toward FAR' : 'Floor area'}</th>
             {designs.map((design) => (
               <td key={design.id} className={`${cellClass(design, selectedId)} num`}>
-                {formatM2(design.totals.grossFloorAreaM2)}
+                {formatM2(design.totals.farFloorAreaM2)}
               </td>
             ))}
           </tr>
+          {showBoth ? (
+            <tr>
+              <th scope="row">Total floor area built</th>
+              {designs.map((design) => (
+                <td key={design.id} className={`${cellClass(design, selectedId)} num`}>
+                  {formatM2(design.totals.grossFloorAreaM2)}
+                </td>
+              ))}
+            </tr>
+          ) : null}
           <tr>
             <th scope="row">Storeys</th>
             {designs.map((design) => (

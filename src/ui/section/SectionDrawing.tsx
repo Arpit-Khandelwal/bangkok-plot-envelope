@@ -27,7 +27,7 @@ function describe(profile: SectionProfile, roadEdgeLetter: string): string {
       : 'No floors are drawn.',
     `The height limit rises ${formatNumber(profile.slope, 2)} m for every metre away from the far side of the road.`,
   ];
-  if (profile.roofDeckCapM !== null) parts.push(`A dashed line marks ${formatMetres(profile.roofDeckCapM)}, where high-rise rules start.`);
+  if (profile.roofDeckCapM !== null) parts.push(`A dashed line marks ${formatMetres(profile.roofDeckCapM)}, where High-rise rules start.`);
   return parts.join(' ');
 }
 
@@ -40,7 +40,7 @@ export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps)
 
   const roadLabel = `Road width ${formatMetres(profile.rowWidthM)}`;
   const setbackLabel = `Setback ${formatMetres(profile.setbackM)} from the plot edge`;
-  const capLabel = profile.roofDeckCapM === null ? '' : `${formatNumber(profile.roofDeckCapM, 1)} m: high-rise rules start here`;
+  const capLabel = profile.roofDeckCapM === null ? '' : `${formatNumber(profile.roofDeckCapM, 1)} m: High-rise rules start here`;
   const limitLabel = 'Height limit';
   const labelRoomLeft = layout.limitEnd.x - SECTION_MARGIN_X;
   const limitLabelFitsLeft = labelRoomLeft > estimateTextWidth(limitLabel, LABEL_SIZE) + 8;
