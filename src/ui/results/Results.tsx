@@ -9,6 +9,7 @@ import { Checklist } from './Checklist';
 import { DesignFigures } from './DesignFigures';
 import { DesignSwitcher } from './DesignSwitcher';
 import { ResultsAnnouncer } from './ResultsAnnouncer';
+import { useIsWhatIf } from './whatIf';
 
 export interface ResultsProps {
   readonly evaluation: OkEvaluation;
@@ -17,6 +18,7 @@ export interface ResultsProps {
 
 /** Everything shown for a successful evaluation, for the selected design. */
 export function Results({ evaluation, design }: ResultsProps) {
+  const qualified = useIsWhatIf(evaluation.nonDefaultReadings);
   const notes = evaluation.problems.filter((problem) => !problem.blocking);
   const blocking = evaluation.problems.filter((problem) => problem.blocking);
   if (blocking.length > 0) return <Problems problems={blocking} />;
@@ -34,8 +36,9 @@ export function Results({ evaluation, design }: ResultsProps) {
   return (
     <>
       <Problems problems={notes} />
-      <ResultsAnnouncer design={design} />
-      <DesignSwitcher designs={evaluation.designs} selectedId={design.id} />
+      {evaluation.designs.length === 1 ? <p className="notice">Only one design fits this plot under the current rules.</p> : null}
+      <ResultsAnnouncer design={design} qualified={qualified} />
+      <DesignSwitcher designs={evaluation.designs} selectedId={design.id} qualified={qualified} />
       <div className="design-detail" key={design.id}>
         <DesignFigures design={design} regime={regime} plotAreaM2={evaluation.site.areaM2} />
         {design.section ? (
@@ -46,7 +49,7 @@ export function Results({ evaluation, design }: ResultsProps) {
             </figcaption>
           </figure>
         ) : null}
-        <Checklist checks={design.checks} />
+        <Checklist checks={design.checks} qualified={qualified} />
         <AreaSchedule design={design} />
         <RuleList regime={design.regime} rules={regime.rules} />
       </div>

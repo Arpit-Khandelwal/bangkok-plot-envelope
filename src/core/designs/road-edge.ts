@@ -1,5 +1,5 @@
 /** The governing road edge of a design: what a shared level is cut parallel to and a tower slides toward. */
-import type { EdgeInfo, Pt, Site } from '../types';
+import type { EdgeInfo, HeightPlane, Pt, Site } from '../types';
 import type { DesignContext } from './context';
 import { governingPlane } from './section';
 
@@ -12,9 +12,14 @@ function longestRoadEdge(site: Site): EdgeInfo | null {
 
 /** The governing plane's edge (longest edge of the widest road that limits height), else the longest road edge. */
 export function governingRoadEdge(ctx: DesignContext): EdgeInfo | null {
-  const plane = governingPlane(ctx.site, ctx.regime.heightPlanes);
-  const byPlane = plane === null ? undefined : ctx.site.edges[plane.edgeIndex];
-  return byPlane ?? longestRoadEdge(ctx.site);
+  return governingEdgeOf(ctx.site, ctx.regime.heightPlanes);
+}
+
+/** As `governingRoadEdge`, from the site and the regime's height planes. */
+export function governingEdgeOf(site: Site, planes: readonly HeightPlane[]): EdgeInfo | null {
+  const plane = governingPlane(site, planes);
+  const byPlane = plane === null ? undefined : site.edges[plane.edgeIndex];
+  return byPlane ?? longestRoadEdge(site);
 }
 
 /** Inward unit normal of an edge (the ring is counter-clockwise) and its offset: depth(p) = n.p - k. */

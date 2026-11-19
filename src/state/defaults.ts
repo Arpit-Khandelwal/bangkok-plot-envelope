@@ -1,4 +1,7 @@
-import type { Assumptions, BuildingType, Interpretation } from '../core/types';
+import type { Assumptions, BuildingType } from '../core/types';
+
+/** The conservative readings recorded in DECISIONS.md section B, defined once in the core. */
+export { DEFAULT_INTERPRETATION } from '../core/readings';
 
 /**
  * Developer norms, not law. No authoritative Bangkok source exists for these
@@ -23,12 +26,6 @@ export const DEFAULT_ASSUMPTIONS: Readonly<Record<BuildingType, Assumptions>> = 
     parkingM2PerStall: 28,
     parapetM: 1.2,
   },
-};
-
-/** The conservative readings recorded in DECISIONS.md section B. */
-export const DEFAULT_INTERPRETATION: Interpretation = {
-  parkingCountsInFar: true,
-  officeParkingCountsInOperatingArea: true,
 };
 
 export const DEFAULT_ROAD_WIDTH_M = 8;

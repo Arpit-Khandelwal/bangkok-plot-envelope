@@ -3,7 +3,7 @@ import { edgeListText } from '../edgeNames';
 import { accessSpec, collectRoads, useSizeSpec } from '../rules';
 import type { RoadFront } from '../rules';
 import type { AccessRoute } from '../rules/data/spec';
-import { m, m2, m2Vs, mVs } from '../rules/format';
+import { floorAreaVs, m, m2, mVs } from '../rules/format';
 import type { Check } from '../types';
 import { isEnabled, makeCheck, passFail, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -29,7 +29,7 @@ function accessChecks(input: CheckInput, measured: Measured): readonly Check[] {
   const passing = roads.find((r) => r.rowWidthM >= tier.minRowM && r.frontageM >= tier.minFrontageM);
   const best = passing ?? roads.reduce<RoadFront | undefined>((a, r) => (a === undefined || r.rowWidthM > a.rowWidthM ? r : a), undefined);
   const title = titleOf(input, ACCESS_RULE, 'Road access for a high-rise');
-  const grossShown = tier.maxGfaM2 === null ? m2(gross) : m2Vs(gross, tier.maxGfaM2).value;
+  const grossShown = tier.maxGfaM2 === null ? m2(gross) : floorAreaVs(gross, tier.maxGfaM2).value;
   return [
     makeCheck(input, {
       ruleId: ACCESS_RULE,

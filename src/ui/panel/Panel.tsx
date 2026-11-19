@@ -87,7 +87,7 @@ export function Panel({ view, design, mapError }: PanelProps) {
           <PlotSummary measure={measure} station={view.station} />
           <EdgeList edgeLengthsM={measure.edgeLengthsM} showRoadPrompt={!hasNoVerdictZone} />
           <div className="verdict">
-            <WhatIfNotice />
+            <WhatIfNotice readings={view.evaluation?.ok ? view.evaluation.nonDefaultReadings : undefined} />
             <Verdict view={view} design={design} />
           </div>
           <AssumptionsForm />

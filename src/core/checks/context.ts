@@ -33,6 +33,8 @@ export interface CheckInput {
   readonly stationDistanceM: number | null;
   readonly reading: AreaReading;
   readonly disabledRuleIds: ReadonlySet<string>;
+  /** The stricter front open-space reading (`Interpretation.frontOpenSpaceOnPublicRoad`). */
+  readonly frontOpenSpaceOnPublicRoad: boolean;
 }
 
 /** Measurements taken once from the floors and shared by the checks. */

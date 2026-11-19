@@ -34,15 +34,17 @@ Rules are data files under `src/core/rules/data/`. Each carries its clause, sour
 | Road setback | 6 m from the road centreline if the road is under 10 m; a tenth of the width if 10 to 20 m; 2 m if wider. | MR 55 cl. 41; BMA 2544 cl. 50 |
 | Side and rear setback | 3 m for walls with openings. | MR 55 cl. 50(2); BMA 2544 cl. 54 |
 | Clear space | 2 m around the building. | BMA 2544 cl. 55 |
+| Rear walkway | Office only: 2 m walkway behind the building, kept from every neighbouring boundary. It says when the other setbacks already exceed it, as they do on most plots. Applying it to an office is our reading. | BMA 2544 cl. 52(7) |
 | Waterway setback | 3 m from a waterway under 10 m wide, 6 m otherwise. | MR 55 cl. 42 |
 | Height plane | Height at any point at most twice the distance to the far side of the nearest road. | MR 55 cl. 44 to 46; BMA 2544 cl. 49 |
 | High-rise threshold | Roof deck at 23 m or more, or 10,000 m² or more, switches the building to the high-rise regime. | MR 33 cl. 1 |
 | High-rise setback | 6 m from every boundary, whole building. | MR 33 cl. 4 |
 | High-rise road access | 12 m of frontage on a road at least 10 m wide (18 m above 30,000 m²). | MR 33 cl. 2 |
-| Front access | Road-facing facade or front open space. Checked on the design only for the facade route. | BMA 2544 cl. 52(6), 53 |
+| Front access | A building on a public road must face it with more than an eighth of its perimeter, within 20 m (cl. 53); the cl. 52(6) front open space (6 m, 12 m over 3 storeys) is read as being for buildings not on a public road, such as one behind a flag-plot access. A setting applies the stricter reading, 52(6) for every building over 2 storeys or 8 m. | BMA 2544 cl. 52(6), 53 |
 | Parking | Condo: one stall per 60 m² unit or per 120 m², whichever is greater. Office: one per 60 m². | BMA 2544 cl. 84; MR 7 cl. 3 |
 | Floor-to-floor height | At least 2.6 m (condo), 3 m (office). | MR 55 cl. 22 |
-| Information only | Permeable planting, fire-truck road, environmental impact assessment trigger (80 units or 4,000 m²). Shown, not computed. | Plan 2556 cl. 14(2); MR 33 cl. 2, 3; ONEP guidance |
+| Fire road and planting | High-rise: the open ground outside a 6 m ring around the building must hold the permeable planting (half the open space). Pass or fail, by area; the generator shrinks the plate until it fits. | MR 33 cl. 3; Plan 2556 cl. 14(2) |
+| Information only | Permeable planting, fire-truck road, parking clear height (2.10 m under beams), environmental impact assessment trigger (80 units, or 4,000 m² of usable area, compared with the total floor area). Shown, not computed. | Plan 2556 cl. 14(2); MR 33 cl. 2, 3; MR 41 cl. 4; ONEP guidance |
 
 There are two rule sets, because the law switches the whole building from one to the other:
 
@@ -157,8 +159,8 @@ Counts from running the commands on 19 Nov 2026:
 
 | Command | Result |
 |---|---|
-| `pnpm test` | 72 files, 1042 passed, 1 skipped |
-| `pnpm test:perf` | 4 files, 19 passed (timing budgets for evaluation and building clipping) |
+| `pnpm test` | 1,173 passed, 1 skipped |
+| `pnpm test:perf` | 5 files, 20 passed (timing budgets for evaluation, building clipping and zone lookup) |
 
 Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone and building type, golden cases worked by hand, invariants, a break list (self-crossing, tiny, slivered and out-of-zone plots, exact thresholds), URL round-trips, and component tests for the panel and layout. There is no automated browser suite. The browser checks (drawing, edges, 3D, phone layout, shareable link, outside-zone message) were done by hand on the deployed build.
 
@@ -168,7 +170,10 @@ Kinds of test: geometry (setbacks, height surface, mesh closure), rules per zone
 - It applies the 2013 plan. The 2026 draft renumbers the zones and is not implemented. The tool says which plan it applies.
 - Road width is the user's input. The pre-filled value is an estimate.
 - It cannot verify: that a road connects onward to a larger road, planned road widenings, airport and conservation height overlays, road-specific no-build strips. It errs strict where it can, and lists the rest as unchecked.
-- Still lenient or unchecked: the high-rise fire-road note assumes the road fits in the setback without testing it. The front-access facade length ignores U-shaped outlines. The 12 m front strip and the internal road are not laid out.
+- Still lenient or unchecked: the high-rise fire road and the planting beside it are tested by area only, not laid out. The front open space and its link to the road are measured on the outline (open ground straight out from each wall), not laid out; the facade length ignores U-shaped outlines. The MR 33 12 m strip from the road frontage is not laid out.
+- Front open space (BMA 2544 cl. 52(6) and 53): by default the 52(6) front open space is read as applying only to buildings not on a public road, and a building on one is judged on clause 53; this is our reading, not settled law (`DECISIONS.md` B12). The stricter reading is a setting, and it costs the example plots roughly 20 to 40% of low-rise floor area.
+- The EIA threshold is "usable area", whose definition was not verified. The tool compares it with the total floor area, the strictest measure, and says so.
+- The office rear walkway (cl. 52(7)) is applied by our reading that an office is a commercial building. It rarely changes a number, because the 3 m side and rear setback already exceeds it.
 - Several legal readings are ours, not official: the condo size test is per plot; the 30 m frontage reading of clause 36(4); the 6 m high-rise setback applies to a podium; parking counts toward floor area (a setting). See `DECISIONS.md` section B. Open items are listed in `research/01-regulations.md` section 9 (19 items).
 - Station distance uses approximate geometry. Results near 500 m are marked "verify on site".
 - Building heights are satellite-derived with about one storey of typical error (see above). Surrounding buildings exist only inside the study area.

@@ -4,12 +4,14 @@
  */
 import { regionArea } from '../geom';
 import { parkingNeed, stallsProvided } from '../measure/areas';
+import { fireRoadGround, plantingRequiredM2 } from '../measure/fire-planting';
 import { levelCount } from '../measure/levels';
 import type { Region } from '../types';
 import { MAX_STOREYS } from './context';
 import type { DesignContext } from './context';
 import { MIN_MAIN_WIDTH_M } from './habitable';
-import { insetToArea } from './plate';
+import { insetToArea, insetUntil } from './plate';
+import type { Plate } from './plate';
 import { buildStack } from './stack';
 import type { Stack } from './stack';
 
@@ -48,6 +50,25 @@ export function coverageCap(ctx: DesignContext, grossM2: number): number {
     if (req.basis === 'totalFloorArea') cap = Math.min(cap, plot - req.share * grossM2);
   }
   return cap - OPEN_SPACE_MARGIN_M2;
+}
+
+/** Ground outside the fire-road ring is kept this far above the planting required, against rounding. */
+const FIRE_PLANTING_MARGIN_M2 = 0.5;
+
+/**
+ * True when the 6 m fire road around `plate` and the permeable planting both fit by area, for a
+ * building of `grossM2` whose largest floor is at most the plate (see `fireRoadGround`).
+ */
+export function fireRoadFits(ctx: DesignContext, plate: Region, grossM2: number): boolean {
+  if (!ctx.fireRoad) return true;
+  const basis = { plotM2: ctx.site.areaM2, grossM2, largestFloorM2: regionArea(plate) };
+  return fireRoadGround(ctx.site, plate).leftM2 >= plantingRequiredM2(ctx.regime.openSpace, basis) + FIRE_PLANTING_MARGIN_M2;
+}
+
+/** The plate, shrunk further when needed so the fire road and the planting both fit. */
+function withFireRoad(ctx: DesignContext, plate: Plate, grossM2: number): Plate {
+  if (fireRoadFits(ctx, plate.region, grossM2)) return plate;
+  return insetUntil(plate.region, (r) => fireRoadFits(ctx, r, grossM2), MIN_MAIN_WIDTH_M);
 }
 
 /** Stalls required by the main-use floor area of a stack. */
@@ -207,7 +228,7 @@ export function generateOnFixedPlate(ctx: DesignContext, plate: Region, opts: Va
   const stack = stackWithParking(ctx, plate, opts);
   if (stack === null) return null;
   const needed = coverageCap(ctx, stack.sums.gross);
-  return regionArea(plate) <= needed ? { plate, coverageCapM2: needed, stack } : null;
+  return regionArea(plate) <= needed && fireRoadFits(ctx, plate, stack.sums.gross) ? { plate, coverageCapM2: needed, stack } : null;
 }
 
 function generateOnPlate(ctx: DesignContext, opts: VariantOptions): Generated | null {
@@ -215,13 +236,14 @@ function generateOnPlate(ctx: DesignContext, opts: VariantOptions): Generated | 
   for (let round = 0; round < OPEN_SPACE_ROUNDS; round++) {
     const cap = coverageCap(ctx, gross);
     if (!(cap > 0)) return null;
-    const plate = insetToArea(ctx.basePlate, Math.min(cap, opts.plateAreaM2), PLATE_TOLERANCE_M2, MIN_MAIN_WIDTH_M);
+    const sized = insetToArea(ctx.basePlate, Math.min(cap, opts.plateAreaM2), PLATE_TOLERANCE_M2, MIN_MAIN_WIDTH_M);
+    const plate = withFireRoad(ctx, sized, gross);
     if (plate.areaM2 <= 0) return null;
     ctx.openWidths.set(plate.region, MIN_MAIN_WIDTH_M);
     const stack = stackWithParking(ctx, plate.region, opts);
     if (stack === null) return null;
     const needed = coverageCap(ctx, stack.sums.gross);
-    if (plate.areaM2 <= needed) return { plate: plate.region, coverageCapM2: needed, stack };
+    if (plate.areaM2 <= needed && fireRoadFits(ctx, plate.region, stack.sums.gross)) return { plate: plate.region, coverageCapM2: needed, stack };
     gross = Math.max(gross, stack.sums.gross);
   }
   return null;

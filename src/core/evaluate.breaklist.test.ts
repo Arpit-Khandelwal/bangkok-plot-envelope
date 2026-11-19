@@ -104,7 +104,9 @@ describe('break list', () => {
 
   it('evaluates a 500-corner plot', () => {
     const points = circle(60, 500);
-    const edges = points.map((_, i) => (i < 20 ? road(16) : NEIGHBOUR));
+    // A quarter of the circle on the road: with only 20 edges (15 m of arc) no building of any size
+    // could face the road with an eighth of its perimeter (clause 53), so none would be offered.
+    const edges = points.map((_, i) => (i < 125 ? road(16) : NEIGHBOUR));
     const e = expectOk(evaluate(scenario(points, edges)));
     expect(e.site.edges).toHaveLength(500);
     expect(e.designs.length).toBeGreaterThanOrEqual(2);

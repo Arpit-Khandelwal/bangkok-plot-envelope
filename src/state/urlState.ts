@@ -1,3 +1,4 @@
+import { KNOWN_RULE_IDS } from '../core/rules';
 import type { Assumptions, BuildingType, EdgeSpec, Interpretation, LngLat } from '../core/types';
 import {
   ASSUMPTION_LIMITS,
@@ -9,18 +10,22 @@ import {
 } from './defaults';
 
 /**
- * Hash format, version 1: `v1=<plot>~<edges>~<type>~<assumptions>~<interpretation>~<rules>~<design>`.
+ * Hash format, version 2: `v2=<plot>~<edges>~<type>~<assumptions>~<interpretation>~<rules>~<design>`.
  * Sections are positional; trailing empty sections are dropped.
- *  - plot: base-36 signed integers in millionths of a degree: lng0,lat0, then dlng,dlat per later
- *    corner relative to the first corner.
+ *  - plot: base-36 signed integers in ten-millionths of a degree (about 1 cm; the store keeps plots
+ *    at this precision): lng0,lat0, then dlng,dlat per later corner relative to the first corner.
+ *    Version 1 links, in millionths of a degree and otherwise the same, still decode.
  *  - edges: comma-separated tokens: `n` neighbour, `r<roadId>:<width>` road, `w<width>` waterway.
  *  - type: `c` condo or `o` office.
  *  - assumptions: `<key letter><value>` pairs, only where they differ from the type's defaults.
  *  - interpretation: letters of the switches that differ from the default: `f` parking in FAR,
- *    `o` office parking in operating area.
+ *    `o` office parking in operating area, `s` the stricter front open-space reading.
  *  - rules: disabled rule ids, comma-separated. design: the selected design id.
  */
-export const HASH_VERSION = 'v1';
+export const HASH_VERSION = 'v2';
+/** Plot units per degree, by hash version. */
+const UNITS_PER_DEGREE: Readonly<Record<string, number>> = { v1: 1e6, v2: 1e7 };
+const ENCODE_UNITS = UNITS_PER_DEGREE[HASH_VERSION] ?? 1e7;
 
 export interface ScenarioFields {
   readonly plot: readonly LngLat[];
@@ -34,7 +39,6 @@ export interface ScenarioFields {
 
 export type DecodedScenario = ScenarioFields;
 
-const MICRODEG = 1e6;
 const MIN_CORNERS = 3;
 const MAX_CORNERS = 200;
 const MAX_RULES = 20;
@@ -53,6 +57,7 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9.-]{0,63}$/;
 const ROAD_ID_PATTERN = /^[a-z0-9][a-z0-9.-]{0,31}$/;
 const NUMBER_PATTERN = /^\d{1,4}(\.\d{1,6})?$/;
 const PREFIX = `${HASH_VERSION}=`;
+const VERSION_PREFIX = /^(v\d+)=/;
 
 const ASSUMPTION_KEYS: ReadonlyArray<readonly [letter: string, key: keyof Assumptions]> = [
   ['f', 'floorToFloorM'],
@@ -81,7 +86,7 @@ function toBase36(value: number): string {
 }
 
 function encodePlot(plot: readonly LngLat[]): string {
-  const rounded = plot.map(([lng, lat]) => [Math.round(lng * MICRODEG), Math.round(lat * MICRODEG)] as const);
+  const rounded = plot.map(([lng, lat]) => [Math.round(lng * ENCODE_UNITS), Math.round(lat * ENCODE_UNITS)] as const);
   const [first] = rounded;
   if (!first) return '';
   const parts: string[] = [toBase36(first[0]), toBase36(first[1])];
@@ -116,10 +121,11 @@ function encodeInterpretation(interpretation: Interpretation): string {
   return [
     interpretation.parkingCountsInFar === DEFAULT_INTERPRETATION.parkingCountsInFar ? '' : 'f',
     interpretation.officeParkingCountsInOperatingArea === DEFAULT_INTERPRETATION.officeParkingCountsInOperatingArea ? '' : 'o',
+    interpretation.frontOpenSpaceOnPublicRoad === DEFAULT_INTERPRETATION.frontOpenSpaceOnPublicRoad ? '' : 's',
   ].join('');
 }
 
-/** The scenario as a short URL-safe string such as `v1=...`, without a leading `#`. */
+/** The scenario as a short URL-safe string such as `v2=...`, without a leading `#`. */
 export function encodeScenario(state: ScenarioFields): string {
   const sections = [
     encodePlot(state.plot),
@@ -153,7 +159,7 @@ function inBounds([lng, lat]: LngLat): boolean {
   );
 }
 
-function decodePlot(section: string): LngLat[] | null {
+function decodePlot(section: string, units: number): LngLat[] | null {
   const numbers = section.split(LIST_SEPARATOR).map(parseBase36);
   const count = numbers.length / 2;
   if (!Number.isInteger(count) || count < MIN_CORNERS || count > MAX_CORNERS) return null;
@@ -164,7 +170,7 @@ function decodePlot(section: string): LngLat[] | null {
     const dx = numbers[index * 2];
     const dy = numbers[index * 2 + 1];
     if (dx === null || dy === null || dx === undefined || dy === undefined) return null;
-    const point: LngLat = index === 0 ? [x0 / MICRODEG, y0 / MICRODEG] : [(x0 + dx) / MICRODEG, (y0 + dy) / MICRODEG];
+    const point: LngLat = index === 0 ? [x0 / units, y0 / units] : [(x0 + dx) / units, (y0 + dy) / units];
     if (!inBounds(point)) return null;
     plot.push(point);
   }
@@ -226,23 +232,32 @@ function decodeAssumptions(section: string, type: BuildingType): Assumptions | n
 }
 
 function decodeInterpretation(section: string): Interpretation | null {
-  if (!/^f?o?$/.test(section)) return null;
+  if (!/^f?o?s?$/.test(section)) return null;
   return {
     parkingCountsInFar: section.includes('f') ? !DEFAULT_INTERPRETATION.parkingCountsInFar : DEFAULT_INTERPRETATION.parkingCountsInFar,
     officeParkingCountsInOperatingArea: section.includes('o')
       ? !DEFAULT_INTERPRETATION.officeParkingCountsInOperatingArea
       : DEFAULT_INTERPRETATION.officeParkingCountsInOperatingArea,
+    frontOpenSpaceOnPublicRoad: section.includes('s')
+      ? !DEFAULT_INTERPRETATION.frontOpenSpaceOnPublicRoad
+      : DEFAULT_INTERPRETATION.frontOpenSpaceOnPublicRoad,
   };
 }
 
+/** Disabled rule ids. Malformed lists are rejected; ids that name no rule are dropped. */
 function decodeRules(section: string): string[] | null {
   if (section === '') return [];
   const ids = section.split(LIST_SEPARATOR);
   if (ids.length > MAX_RULES || !ids.every((id) => ID_PATTERN.test(id)) || new Set(ids).size !== ids.length) return null;
-  return ids;
+  return ids.filter((id) => KNOWN_RULE_IDS.has(id));
 }
 
-function readPayload(text: string): string | null {
+interface Payload {
+  readonly body: string;
+  readonly units: number;
+}
+
+function readPayload(text: string): Payload | null {
   if (typeof text !== 'string' || text.length > MAX_TEXT_LENGTH) return null;
   let raw = text.startsWith('#') ? text.slice(1) : text;
   if (raw.includes('%')) {
@@ -252,13 +267,15 @@ function readPayload(text: string): string | null {
       return null;
     }
   }
-  return raw.startsWith(PREFIX) ? raw.slice(PREFIX.length) : null;
+  const version = VERSION_PREFIX.exec(raw)?.[1];
+  const units = version === undefined ? undefined : UNITS_PER_DEGREE[version];
+  return version === undefined || units === undefined ? null : { body: raw.slice(version.length + 1), units };
 }
 
-function decodeSections(sections: readonly string[]): DecodedScenario | null {
+function decodeSections(sections: readonly string[], units: number): DecodedScenario | null {
   const [plotText = '', edgesText = '', typeText = '', assumptionsText = '', interpretationText = '', rulesText = '', designText = ''] =
     sections;
-  const plot = decodePlot(plotText);
+  const plot = decodePlot(plotText, units);
   const edges = plot ? decodeEdges(edgesText, plot.length) : null;
   const buildingType = decodeBuildingType(typeText);
   const assumptions = buildingType ? decodeAssumptions(assumptionsText, buildingType) : null;
@@ -282,9 +299,9 @@ export function decodeScenario(text: string): DecodedScenario | null {
   try {
     const payload = readPayload(text);
     if (payload === null) return null;
-    const sections = payload.split(SECTION_SEPARATOR);
+    const sections = payload.body.split(SECTION_SEPARATOR);
     if (sections.length < MIN_SECTIONS || sections.length > MAX_SECTIONS) return null;
-    return decodeSections(sections);
+    return decodeSections(sections, payload.units);
   } catch {
     return null;
   }

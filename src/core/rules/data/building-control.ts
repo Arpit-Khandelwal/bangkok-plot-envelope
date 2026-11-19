@@ -149,6 +149,23 @@ export const BUILDING_CONTROL_RULES: readonly RuleSpec[] = [
       citations: [cite('BMA2544', 'ข้อ 55', 'verified')],
     },
   },
+  {
+    kind: 'uniformSetback',
+    buildingTypes: ['office'],
+    distanceM: 2,
+    appliesTo: ['neighbour'],
+    what: 'the building',
+    assumption:
+      'A walkway at least 2 m wide, open to the sky and kept clear, behind the building. The clause names commercial buildings, factories and public buildings; an office is taken to be a commercial building ("business services", ข้อ 5(106)), which is a reading, not the text. Where the back is depends on the layout, so the 2 m is kept from every boundary with neighbouring land.',
+    noteWhenCovered: true,
+    meta: {
+      id: 'bma.rear-walkway',
+      category: 'setback',
+      title: 'Rear walkway',
+      titleTh: 'ทางเดินหลังอาคาร',
+      citations: [cite('BMA2544', 'ข้อ 52(7)', 'assumption')],
+    },
+  },
   // MR 33 ข้อ 6 repeats the same share for high-rise and extra-large buildings only.
   ...plotOpenSpace('condo', 0.3, 'ข้อ 52(1)', 'ข้อ 6(1)'),
   ...plotOpenSpace('office', 0.1, 'ข้อ 52(2)', 'ข้อ 6(2)'),
@@ -198,7 +215,7 @@ export const BUILDING_CONTROL_RULES: readonly RuleSpec[] = [
     requirement:
       'Leave a fire-truck road at least 6 m wide, open to the sky, all around the building, and keep a 12 m wide open strip from the road frontage to the building.',
     basis:
-      'The 6 m high-rise setback on every boundary leaves room for this road, so it does not shrink the envelope here. The tool does not lay out the road or the 12 m strip; check both in the site plan.',
+      'The 6 m high-rise setback on every boundary leaves room for this road. The designs also keep enough open ground outside a 6 m ring around the building for the permeable planting the plan requires, measured by area. The tool does not lay out the road, the planting or the 12 m strip; check them in the site plan.',
     meta: {
       id: 'mr33.fire-road',
       category: 'access',
@@ -209,15 +226,15 @@ export const BUILDING_CONTROL_RULES: readonly RuleSpec[] = [
   {
     kind: 'info',
     requirement:
-      'A building over 2 storeys or 8 m needs a front open space at least 12 m wide (over 3 storeys) along at least one sixth of its external perimeter, linked to a public road by an internal road at least 6 m wide. A building on a public road may instead have a façade facing the road longer than one eighth of its external perimeter, within 20 m of the road.',
+      'A building on a public road must have its building line on the road side longer than one eighth of its external perimeter and no more than 20 m from the road (clause 53). A building not on a public road (behind a narrow access) needs a front open space at least 6 m wide (12 m over 3 storeys) along at least one sixth of its external perimeter, linked to the road by an internal road at least 6 m wide (clause 52(6)); a residential building of at most 3 storeys is exempt.',
     basis:
-      'Read as two routes: clause 53 is checked on the design (the part of the outline within 20 m of the road edge, facing it and roughly parallel to it); the clause 52(6) open space and internal road are not laid out by this tool, so a design that misses clause 53 is flagged, not failed.',
+      'Read as: the clause 52(6) front open space is for buildings not on a public road, and a building on one is governed by clause 53 (DECISIONS.md B12). This is our reading, not settled law. A setting applies the stricter reading, under which every building over 2 storeys or 8 m needs the 52(6) space. Both are measured on the design; the open space and its link are not laid out.',
     meta: {
       id: 'bma.front-access',
       category: 'access',
       title: 'Front open space or road-facing façade',
       titleTh: 'ที่ว่างด้านหน้าอาคาร',
-      citations: [cite('BMA2544', 'ข้อ 52(6)', 'verified'), cite('BMA2544', 'ข้อ 53', 'assumption')],
+      citations: [cite('BMA2544', 'ข้อ 52(6)', 'assumption'), cite('BMA2544', 'ข้อ 53', 'assumption')],
     },
   },
   {

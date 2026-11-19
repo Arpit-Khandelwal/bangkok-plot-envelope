@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Assumptions, BuildingType, EdgeSpec, Interpretation, LngLat } from '../core/types';
 import { DEFAULT_ASSUMPTIONS, DEFAULT_INTERPRETATION } from './defaults';
+import { roundPlot } from './coords';
 import { neighbourEdges, remapEdges } from './edges';
 import type { DecodedScenario } from './urlState';
 
@@ -52,9 +53,11 @@ export const useAppStore = create<AppState>((set) => ({
   selectedEdge: null,
   plotRevision: 0,
 
-  setPlotFromMap: (plot) =>
+  setPlotFromMap: (drawn) =>
     set((state) => {
-      if (!plot) return { plot: null, edges: [], selectedEdge: null };
+      if (!drawn) return { plot: null, edges: [], selectedEdge: null };
+      // Kept at the precision a shared link carries, so what is shown is what is shared.
+      const plot = roundPlot(drawn);
       const edges = state.plot ? remapEdges(state.plot, state.edges, plot) : neighbourEdges(plot.length);
       const selectedEdge = state.selectedEdge !== null && state.selectedEdge < plot.length ? state.selectedEdge : null;
       return { plot, edges, selectedEdge };
@@ -62,10 +65,11 @@ export const useAppStore = create<AppState>((set) => ({
 
   loadPreset: (preset) =>
     set((state) => ({
-      plot: preset.plot,
+      plot: roundPlot(preset.plot),
       edges: preset.edges,
       buildingType: preset.buildingType,
       assumptions: DEFAULT_ASSUMPTIONS[preset.buildingType],
+      interpretation: DEFAULT_INTERPRETATION,
       disabledRuleIds: [],
       selectedDesignId: null,
       selectedEdge: null,
@@ -74,7 +78,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   loadScenario: (scenario) =>
     set((state) => ({
-      plot: scenario.plot,
+      plot: roundPlot(scenario.plot),
       edges: scenario.edges,
       buildingType: scenario.buildingType,
       assumptions: scenario.assumptions,
@@ -85,12 +89,17 @@ export const useAppStore = create<AppState>((set) => ({
       plotRevision: state.plotRevision + 1,
     })),
 
+  // A new plot starts from the conservative readings and the default assumptions, so a less
+  // conservative setting never carries over unnoticed. The building type is kept: it is a deliberate
+  // choice that is always on screen, and the assumptions reset to that type's defaults.
   clearPlot: () =>
     set((state) => ({
       plot: null,
       edges: [],
       selectedEdge: null,
       selectedDesignId: null,
+      assumptions: DEFAULT_ASSUMPTIONS[state.buildingType],
+      interpretation: DEFAULT_INTERPRETATION,
       disabledRuleIds: [],
       plotRevision: state.plotRevision + 1,
     })),

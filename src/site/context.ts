@@ -1,7 +1,7 @@
-import type { LngLat, ZoneRef } from "../core/types";
+import { intersection, regionArea, union } from "../core/geom";
+import type { LngLat, Polygon, Pt, Region, ZoneRef } from "../core/types";
 import type { SiteData } from "./siteData";
 import {
-  boundsContain,
   boundsIntersect,
   boundsOf,
   boundsOfGeometry,
@@ -24,11 +24,11 @@ import {
 } from "./geo";
 
 export type ZoneLookup =
-  /** Every corner of the plot is in the same zone. */
+  /** The plot lies in one zone, to within 1 m² or 0.1% of its area. */
   | { readonly status: "single"; readonly zone: ZoneRef }
-  /** The plot crosses a zone boundary. `zones` lists each zone it touches. */
+  /** The plot crosses a zone boundary. `zones` lists each zone holding more than the tolerance of it. */
   | { readonly status: "straddles"; readonly zones: readonly ZoneRef[] }
-  /** No corner of the plot is inside any mapped zone. */
+  /** No mapped zone holds more of the plot than that tolerance. */
   | { readonly status: "outside" };
 
 export interface NearestStation {
@@ -103,15 +103,6 @@ function centroidOf(ring: PosRing): Pos {
   return [origin[0] + cx / (3 * area2), origin[1] + cy / (3 * area2)];
 }
 
-/** Corners, edge midpoints and the centroid. */
-function samplePoints(ring: PosRing): readonly Pos[] {
-  const midpoints = ringEdges(ring, true).map(([a, b]): Pos => [
-    (a[0] + b[0]) / 2,
-    (a[1] + b[1]) / 2,
-  ]);
-  return [...ring, ...midpoints, centroidOf(ring)];
-}
-
 // ---------- Zones ----------
 
 interface ParsedZone {
@@ -155,7 +146,35 @@ function zoneKey(ref: ZoneRef): string {
   return `${ref.code}\u0000${ref.planVersion}`;
 }
 
-/** Which plan zone the plot is in. Samples every corner, every edge midpoint and the centroid. */
+/**
+ * A plot is in a zone when no more of it than this lies outside the zone's polygons, and touches a
+ * zone when more than this lies inside: 1 m², or 0.1% of the plot when that is larger.
+ */
+const ZONE_TOLERANCE_M2 = 1;
+const ZONE_TOLERANCE_SHARE = 0.001;
+
+function toRegionRing(projection: FlatProjection, ring: PosRing): Pt[] {
+  return ring.map((p) => {
+    const [x, y] = projectPos(projection, p);
+    return { x, y };
+  });
+}
+
+/** The zone's polygons, holes kept, in the plot's flat metres. */
+function zoneRegion(zone: ParsedZone, projection: FlatProjection): Region {
+  return union(
+    zone.geometry.polygons.flatMap((polygon): Polygon[] => {
+      const [outer, ...holes] = polygon;
+      return outer === undefined ? [] : [{ outer: toRegionRing(projection, outer), holes: holes.map((h) => toRegionRing(projection, h)) }];
+    }),
+  );
+}
+
+/**
+ * Which plan zone the plot is in, by area: `single` when one zone's polygons (holes respected) hold
+ * all of the plot but at most the tolerance, `straddles` listing every zone that holds more than the
+ * tolerance otherwise, and `outside` when none does. Zones are first filtered by bounding box.
+ */
 export function locateZone(
   plot: readonly LngLat[],
   zones: SiteData["zones"],
@@ -164,36 +183,29 @@ export function locateZone(
   const features = zones?.features;
   if (ring.length === 0 || !Array.isArray(features))
     return { status: "outside" };
-
-  const samples = samplePoints(ring);
-  const plotBounds = boundsOf(samples);
+  const plotBounds = boundsOf(ring);
   if (!plotBounds) return { status: "outside" };
 
-  const found = new Map<string, ZoneRef>();
-  const covered = new Array<boolean>(samples.length).fill(false);
+  const projection = makeProjection(centroidOf(ring));
+  const plotRegion = union([{ outer: toRegionRing(projection, ring), holes: [] }]);
+  const plotArea = regionArea(plotRegion);
+  if (!(plotArea > 0)) return { status: "outside" };
+  const tolerance = Math.max(ZONE_TOLERANCE_M2, ZONE_TOLERANCE_SHARE * plotArea);
 
+  const inside = new Map<string, { readonly ref: ZoneRef; readonly areaM2: number }>();
   for (const feature of features) {
     const zone = feature ? parseZone(feature) : null;
     if (!zone || !boundsIntersect(zone.bounds, plotBounds)) continue;
-    samples.forEach((sample, index) => {
-      if (!boundsContain(zone.bounds, sample)) return;
-      if (
-        zone.geometry.polygons.some((polygon) =>
-          pointInPolygon(sample, polygon),
-        )
-      ) {
-        covered[index] = true;
-        found.set(zoneKey(zone.ref), zone.ref);
-      }
-    });
+    const areaM2 = regionArea(intersection(plotRegion, zoneRegion(zone, projection)));
+    const key = zoneKey(zone.ref);
+    inside.set(key, { ref: zone.ref, areaM2: (inside.get(key)?.areaM2 ?? 0) + areaM2 });
   }
 
-  const hits = [...found.values()];
-  const onlyZone = hits[0];
-  if (!onlyZone) return { status: "outside" };
-  if (hits.length === 1 && covered.every(Boolean))
-    return { status: "single", zone: onlyZone };
-  return { status: "straddles", zones: hits };
+  const touched = [...inside.values()].filter((z) => z.areaM2 > tolerance);
+  const only = touched[0];
+  if (!only) return { status: "outside" };
+  if (touched.length === 1 && plotArea - only.areaM2 <= tolerance) return { status: "single", zone: only.ref };
+  return { status: "straddles", zones: touched.map((z) => z.ref) };
 }
 
 // ---------- Stations ----------

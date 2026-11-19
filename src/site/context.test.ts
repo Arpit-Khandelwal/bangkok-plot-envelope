@@ -537,3 +537,50 @@ describe("real Bangkok data", () => {
     expect(nearest?.distanceM).toBeLessThan(150);
   });
 });
+
+// ---------- locateZone by area ----------
+
+function ringAround(centre: LngLat, halfM: number): MutLngLat[] {
+  return closed(square(centre, halfM));
+}
+
+describe("locateZone by area", () => {
+  it("finds a pocket of another zone inside the plot that no sample point would hit", () => {
+    // A 110 m plot around a 22 m pocket of ย.5 cut out of a ย.7 polygon.
+    const data = zones(
+      zoneFeature("ย.7", { type: "Polygon", coordinates: [ringAround(CENTRE, 500), [...ringAround(CENTRE, 11)].reverse()] }),
+      zoneFeature("ย.5", polygonAround(CENTRE, 11)),
+    );
+    const plot = square(offset(CENTRE, 7, 9), 55);
+    const result = locateZone(plot, data);
+    expect(result.status).toBe("straddles");
+    expect(result.status === "straddles" ? result.zones.map((z) => z.code).sort() : []).toEqual(["ย.5", "ย.7"]);
+  });
+
+  it("reports a plot inside a zone's hole as outside", () => {
+    const data = zones(zoneFeature("ย.7", { type: "Polygon", coordinates: [ringAround(CENTRE, 500), [...ringAround(CENTRE, 60)].reverse()] }));
+    expect(locateZone(square(CENTRE, 20), data)).toEqual({ status: "outside" });
+  });
+
+  it("treats a hole as a hole whichever way its ring winds", () => {
+    const sameWound = zones(zoneFeature("ย.7", { type: "Polygon", coordinates: [ringAround(CENTRE, 500), ringAround(CENTRE, 60)] }));
+    expect(locateZone(square(CENTRE, 20), sameWound)).toEqual({ status: "outside" });
+  });
+
+  it("lists all three zones a plot overlaps", () => {
+    const west: Geometry = { type: "Polygon", coordinates: [closed([offset(CENTRE, -500, -500), offset(CENTRE, 0, -500), offset(CENTRE, 0, 500), offset(CENTRE, -500, 500)])] };
+    const southEast: Geometry = { type: "Polygon", coordinates: [closed([offset(CENTRE, 0, -500), offset(CENTRE, 500, -500), offset(CENTRE, 500, 0), offset(CENTRE, 0, 0)])] };
+    const northEast: Geometry = { type: "Polygon", coordinates: [closed([offset(CENTRE, 0, 0), offset(CENTRE, 500, 0), offset(CENTRE, 500, 500), offset(CENTRE, 0, 500)])] };
+    const data = zones(zoneFeature("ย.7", west), zoneFeature("ย.8", southEast), zoneFeature("พ.5", northEast));
+    const result = locateZone(square(CENTRE, 30), data);
+    expect(result.status === "straddles" ? result.zones.map((z) => z.code).sort() : result.status).toEqual(["พ.5", "ย.7", "ย.8"].sort());
+  });
+
+  it("ignores a sliver under the tolerance across a zone boundary", () => {
+    // 40 x 40 plot whose east edge runs 0.01 m into the next zone: 0.4 m², under 1.6 m² (0.1%).
+    const west: Geometry = { type: "Polygon", coordinates: [closed([offset(CENTRE, -500, -500), offset(CENTRE, 19.99, -500), offset(CENTRE, 19.99, 500), offset(CENTRE, -500, 500)])] };
+    const east: Geometry = { type: "Polygon", coordinates: [closed([offset(CENTRE, 19.99, -500), offset(CENTRE, 500, -500), offset(CENTRE, 500, 500), offset(CENTRE, 19.99, 500)])] };
+    const result = locateZone(PLOT, zones(zoneFeature("ย.7", west), zoneFeature("ย.8", east)));
+    expect(result).toEqual({ status: "single", zone: { code: "ย.7", planVersion: "2556" } });
+  });
+});

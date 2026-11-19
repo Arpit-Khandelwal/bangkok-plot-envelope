@@ -318,3 +318,22 @@
   border-width: 2px;
   background: var(--fail-tint);
 }
+
+.reading-group {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--hairline);
+}
+
+.reading-group__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.reading-mark {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+}

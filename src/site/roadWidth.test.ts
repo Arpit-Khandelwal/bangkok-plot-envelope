@@ -18,16 +18,39 @@ function road(points: LngLat[], properties: RoadProperties): RoadCollection['fea
 const collection = (...features: RoadCollection['features']): RoadCollection => ({ type: 'FeatureCollection', features });
 
 describe('suggestRoadWidth', () => {
-  it('prefers a parallel road just outside over a nearer perpendicular one', () => {
+  it('prefers a parallel road over a perpendicular one only in a near tie', () => {
     const roads = collection(
       road([at(-30, -10), at(70, -10)], { name: 'Parallel Road', widthEst: 14, widthSrc: 'est' }),
-      road([at(20, -2), at(20, -30)], { name: 'Cross Soi', widthEst: 6, widthSrc: 'est' }),
+      road([at(20, -8), at(20, -30)], { name: 'Cross Soi', widthEst: 6, widthSrc: 'est' }),
     );
     const result = suggestRoadWidth(PLOT, 0, roads);
     expect(result?.roadName).toBe('Parallel Road');
     expect(result?.widthM).toBe(14);
     expect(result?.source).toBe('est');
     expect(result?.distanceM).toBeCloseTo(10, 0);
+  });
+
+  it('takes the nearer road when the parallel one is more than 3 m further', () => {
+    // Before, any parallel road within 40 m won: here the soi the edge sits on is the answer.
+    const roads = collection(
+      road([at(-30, -10), at(70, -10)], { name: 'Parallel Road', widthEst: 14, widthSrc: 'est' }),
+      road([at(20, -2), at(20, -30)], { name: 'Cross Soi', widthEst: 6, widthSrc: 'est' }),
+    );
+    expect(suggestRoadWidth(PLOT, 0, roads)?.roadName).toBe('Cross Soi');
+  });
+
+  it('picks the soi the edge abuts, not a parallel 30 m road 35 m away', () => {
+    const roads = collection(
+      road([at(-30, -5), at(70, -5)], { name: 'Soi', widthEst: 6, widthSrc: 'est' }),
+      road([at(-30, -35), at(70, -35)], { name: 'Main Road', widthEst: 30, widthSrc: 'est' }),
+    );
+    expect(suggestRoadWidth(PLOT, 0, roads)?.roadName).toBe('Soi');
+  });
+
+  it('returns null rather than a road too far away to abut the edge', () => {
+    // A 30 m road reaches 15 m from its centreline; 35 m away it cannot touch the plot.
+    const roads = collection(road([at(-30, -35), at(70, -35)], { name: 'Main Road', widthEst: 30, widthSrc: 'est' }));
+    expect(suggestRoadWidth(PLOT, 0, roads)).toBeNull();
   });
 
   it('reports a tagged width as tag', () => {
@@ -47,7 +70,7 @@ describe('suggestRoadWidth', () => {
   });
 
   it('uses the outward side of every edge', () => {
-    const roads = collection(road([at(55, -30), at(55, 70)], { name: 'East Road', widthEst: 12, widthSrc: 'est' }));
+    const roads = collection(road([at(52, -30), at(52, 70)], { name: 'East Road', widthEst: 12, widthSrc: 'est' }));
     expect(suggestRoadWidth(PLOT, 1, roads)?.roadName).toBe('East Road');
     expect(suggestRoadWidth(PLOT, 3, roads)).toBeNull();
   });

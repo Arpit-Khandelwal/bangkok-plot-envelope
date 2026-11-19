@@ -98,6 +98,26 @@ export function m2Vs(value: number, limit: number): ComparedText {
   return { value: `${t.value} m²`, limit: `${t.limit} m²` };
 }
 
+/** Area decimals when a floor area is compared with its limit. */
+const FLOOR_AREA_DECIMALS = 1;
+
+function withTenths(text: string): string {
+  return text.includes('.') || !/^-?[\d,]+$/.test(text) ? text : `${text}.0`;
+}
+
+/**
+ * A design's floor area against its limit, both to one decimal and rounded the same way in every
+ * check, so one design's area reads the same against each of its limits: the area toward the side
+ * of the limit it is on (down when under, up when over), the limit down. Neither ever crosses the
+ * other.
+ */
+export function floorAreaVs(value: number, limit: number): ComparedText {
+  if (!Number.isFinite(value) || !Number.isFinite(limit)) return { value: `${formatNumber(value, FLOOR_AREA_DECIMALS)} m²`, limit: `${formatNumber(limit, FLOOR_AREA_DECIMALS)} m²` };
+  const side = value > limit ? 1 : -1;
+  const tenths = (v: number, dir: number): string => withTenths(formatNumber(directed(v, FLOOR_AREA_DECIMALS, dir), FLOOR_AREA_DECIMALS));
+  return { value: `${tenths(value, side)} m²`, limit: `${tenths(limit, -1)} m²` };
+}
+
 /** A plain number compared with a limit. */
 export function numVs(value: number, limit: number): ComparedText {
   return formatAgainst(value, limit, MAX_LENGTH_DECIMALS, MAX_LENGTH_DECIMALS);

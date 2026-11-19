@@ -1,10 +1,11 @@
 /** Everything the generator needs for one regime, gathered once. */
-import { difference, largestPiece } from '../geom';
 import type { AreaReading } from '../measure/areas';
+import { FIRE_ROAD_RULE, PERMEABLE_RULE } from '../measure/fire-planting';
 import { planFarRuleIds } from '../rules';
 import type { Assumptions, BuildingType, Envelope, FloorUse, Region, RegimeRules, Scenario, Site } from '../types';
-import { habitable, MIN_MAIN_WIDTH_M, narrowLoss } from './habitable';
+import { MIN_MAIN_WIDTH_M, narrowLoss } from './habitable';
 import type { NarrowLoss } from './habitable';
+import { frontPlate } from './front-plate';
 
 /** How floor areas are counted under the user's readings of the law. */
 export function areaReading(scenario: Scenario): AreaReading {
@@ -55,6 +56,17 @@ export interface DesignContext {
    * height planes leave whole is not opened again. Holds the base plate and the plates sized from it.
    */
   readonly openWidths: WeakMap<Region, number>;
+  /**
+   * True when the plate must leave room for the 6 m fire road and the permeable planting together
+   * (a high-rise with both rules on; see `fireRoadGround`).
+   */
+  readonly fireRoad: boolean;
+  /** The stricter front open-space reading (`Interpretation.frontOpenSpaceOnPublicRoad`). */
+  readonly strictFront: boolean;
+}
+
+function ruleOn(regime: RegimeRules, id: string): boolean {
+  return regime.rules.some((r) => r.id === id && !r.disabled);
 }
 
 /** The roof-deck cap the generator uses: the regime's, or the display cap when no height rule is on. */
@@ -72,14 +84,14 @@ export function designContext(
   envelope: Envelope,
 ): DesignContext {
   const cap = effectiveCap(regime);
-  const whole = largestPiece(envelope.footprint);
-  const basePlate = habitable(whole, MIN_MAIN_WIDTH_M);
+  const strictFront = scenario.interpretation.frontOpenSpaceOnPublicRoad;
+  const { basePlate, tooNarrow } = frontPlate(site, regime, envelope.footprint, strictFront);
   return {
     site,
     regime,
     envelope,
     basePlate,
-    narrow: narrowLoss(site, envelope.footprint, difference(whole, basePlate)),
+    narrow: narrowLoss(site, envelope.footprint, tooNarrow),
     buildingType: scenario.buildingType,
     mainUse: scenario.buildingType === 'condo' ? 'residential' : 'office',
     assumptions,
@@ -90,5 +102,7 @@ export function designContext(
     capRuleId: cap.ruleId,
     clipMemo: new WeakMap(),
     openWidths: new WeakMap([[basePlate, MIN_MAIN_WIDTH_M]]),
+    strictFront,
+    fireRoad: regime.regime === 'highRise' && ruleOn(regime, FIRE_ROAD_RULE) && ruleOn(regime, PERMEABLE_RULE),
   };
 }

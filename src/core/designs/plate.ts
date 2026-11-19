@@ -83,6 +83,40 @@ function solveInset(start: Plate, targetM2: number, toleranceM2: number, insetPl
   return best;
 }
 
+/** Inset distances tried when shrinking a plate until a condition holds, in metres. */
+const UNTIL_FIRST_STEP_M = 0.5;
+const UNTIL_PRECISION_M = 0.02;
+const UNTIL_MAX_STEPS = 40;
+
+/**
+ * The largest uniform shrink of `region`, opened at `minWidthM`, for which `ok` holds, given that
+ * `ok` keeps holding as the plate shrinks (bisection on the inset distance, to 2 cm). Empty when
+ * no shrink that leaves a plate satisfies it.
+ */
+export function insetUntil(region: Region, ok: (plate: Region) => boolean, minWidthM: number): Plate {
+  const at = (t: number): Plate => plateOf(largestPiece(openFully(shrinkUniform(region, t), minWidthM)));
+  let lo = 0;
+  let hi = UNTIL_FIRST_STEP_M;
+  let best = at(hi);
+  for (let i = 0; i < UNTIL_MAX_STEPS && best.areaM2 > 0 && !ok(best.region); i++) {
+    lo = hi;
+    hi *= 2;
+    best = at(hi);
+  }
+  if (!(best.areaM2 > 0) || !ok(best.region)) return plateOf([]);
+  for (let i = 0; i < UNTIL_MAX_STEPS && hi - lo > UNTIL_PRECISION_M; i++) {
+    const mid = (lo + hi) / 2;
+    const p = at(mid);
+    if (p.areaM2 > 0 && ok(p.region)) {
+      hi = mid;
+      best = p;
+    } else {
+      lo = mid;
+    }
+  }
+  return best;
+}
+
 function clearsAll(site: Site, region: Region, planes: readonly HeightPlane[], heightM: number): boolean {
   return planes.every((plane) =>
     region.every((poly) => poly.outer.every((v) => planeLimitAt(site, plane, v) >= heightM)),

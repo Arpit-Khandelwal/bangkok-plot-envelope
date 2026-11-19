@@ -46,8 +46,9 @@ describe('golden case 1: 50 x 50 m condo on a 12 m road, station 300 m', () => {
     // Coverage cap: min(30% open of the plot -> 1,750, 1,923, 2,500 - 6% x 10,000 = 1,900) - 0.5 = 1,749.5.
     // 5 floors x 1,749.5 = 8,747.5, top floor ~1,251 -> ~9,999. Parking is sized to the need:
     // one whole floor (62 stalls) and a shared level 2 whose back holds 6 more, 68 stalls for
-    // ceil(8,086 / 120) = 68 required. The shared level takes the main-use height, so the roof deck
-    // is 3 + 5 x 3.1 = 18.5 m (it was 18.4 m with two whole 3 m parking floors and 124 stalls).
+    // ceil(8,069 / 120) = 68 required. The shared level takes the main-use height, so the roof deck
+    // is 3 + 5 x 3.1 = 18.5 m. On a public road the front open space of clause 52(6) is not required
+    // by default (DECISIONS.md B12), so no 12 m strip is kept.
     const low = designById(result, 'low-rise-block');
     expect(low.totals.grossFloorAreaM2).toBeLessThan(10000);
     expect(low.totals.grossFloorAreaM2).toBeGreaterThan(9997);
@@ -60,15 +61,18 @@ describe('golden case 1: 50 x 50 m condo on a 12 m road, station 300 m', () => {
   });
 
   it('builds a high-rise that lands within 1 m² of 12,500 m²', () => {
-    // One parking floor of 1,444 and a shared level 2 (948 m² of parking at the back, 85 stalls for
-    // ceil(10,108 / 120) = 85), then 6 full floors and a ~948 m² top floor: 9 storeys, roof deck
-    // 3 + 8 x 3.1 = 27.8 m (27.7 m before, with two whole 3 m parking floors). The plane allows
-    // 2 x (6 + 12) = 36 m at the front face, above 27.8 + 1.2, so no floor steps back.
+    // The plate is shrunk until the open ground outside a 6 m fire-road ring holds the permeable
+    // planting, half of 30% of 2,500 = 375 m² (DECISIONS.md B14): about 1,160 m² instead of the full
+    // 1,444 m², where the ring took all the open ground. Two parking floors and a shared level 3 (85
+    // stalls for ceil(10,115 / 120) = 85), 7 full floors and a ~902 m² top floor: 11 storeys, roof
+    // deck 3 + 3 + 9 x 3.1 = 33.9 m. The plane allows 2 x (12 + 12) = 48 m at the front face, so no
+    // floor steps back.
     const high = designById(result, 'high-rise-max');
     expect(high.totals.grossFloorAreaM2).toBeLessThanOrEqual(12500);
     expect(high.totals.grossFloorAreaM2).toBeGreaterThan(12499);
-    expect(high.totals.storeys).toBe(9);
-    expect(high.totals.roofDeckHeightM).toBeCloseTo(27.8, 6);
+    expect(high.totals.coverageM2).toBeLessThan(1444);
+    expect(high.totals.storeys).toBe(11);
+    expect(high.totals.roofDeckHeightM).toBeCloseTo(33.9, 6);
     expect([high.totals.parkingRequired, high.totals.parkingProvided]).toEqual([85, 85]);
     expect(high.totals.allowedFar).toBe(5);
   });
@@ -79,7 +83,9 @@ describe('golden case 1: 50 x 50 m condo on a 12 m road, station 300 m', () => {
     expect(slender.totals.coverageM2 / high.totals.coverageM2).toBeGreaterThan(0.4);
     expect(slender.totals.coverageM2 / high.totals.coverageM2).toBeLessThan(0.55);
     expect(slender.totals.storeys).toBeGreaterThanOrEqual(high.totals.storeys + 3);
-    expect(slender.totals.grossFloorAreaM2).toBeCloseTo(high.totals.grossFloorAreaM2, -1);
+    // Its top floors step back under the road's height plane, so it ends about 58 m² short.
+    expect(slender.totals.grossFloorAreaM2).toBeLessThanOrEqual(high.totals.grossFloorAreaM2);
+    expect(slender.totals.grossFloorAreaM2).toBeGreaterThan(high.totals.grossFloorAreaM2 - 100);
   });
 
   it('shows the envelope is mostly empty: floor-area limits bind, not the envelope', () => {
@@ -99,9 +105,12 @@ describe('golden case 2: same plot, station 800 m', () => {
     for (const design of result.designs) expect(design.totals.grossFloorAreaM2).toBeLessThanOrEqual(10000);
   });
 
-  it('drops the squat high-rise (under 23 m and 10,000 m²) but keeps the slender tower', () => {
-    expect(result.designs.map((d) => d.id)).toEqual(['low-rise-block', 'slender-tower']);
-    expect(designById(result, 'slender-tower').totals.roofDeckHeightM).toBeGreaterThanOrEqual(23);
+  it('keeps the high-rise only because it is genuinely high-rise, and the slender tower', () => {
+    // On the plate the fire road and planting leave (about 1,160 m²), 10,000 m² needs 9 storeys and
+    // a 27.8 m roof deck, so the high-rise is no longer squat. (Before, on the full 1,444 m² plate,
+    // it stayed under 23 m and 10,000 m² and was dropped.)
+    expect(result.designs.map((d) => d.id)).toEqual(['low-rise-block', 'high-rise-max', 'slender-tower']);
+    for (const id of ['high-rise-max', 'slender-tower']) expect(designById(result, id).totals.roofDeckHeightM).toBeGreaterThanOrEqual(23);
   });
 });
 
@@ -128,7 +137,6 @@ describe('golden case 3: 30 x 40 m condo on a 6 m soi', () => {
     // Level 6 top 18.5 + 1.2 = 19.7 needs d >= 3.85: 24 x 33.15 = 795.6.
     // Level 7 top 21.6 + 1.2 = 22.8 needs d >= 5.4: 24 x 31.6 = 758.4.
     // Total 5 x 816 + 795.6 + 758.4 = 5,634, short of FAR 5 (6,000): the roof-deck cap binds.
-    // (Before parking was sized: 816 x 5, 796.8, 759.6 = 5,636.4, two whole 3 m parking floors.)
     const low = designById(result, 'low-rise-block');
     expect(low.floors.map((f) => Math.round(f.areaM2 * 10) / 10)).toEqual([816, 280.5, 535.5, 816, 816, 816, 795.6, 758.4]);
     expect(low.totals.grossFloorAreaM2).toBeCloseTo(5634, 0);
@@ -154,11 +162,15 @@ describe('golden case 4: office on a 60 x 60 m plot with a 16 m road', () => {
     // x m² of offices need ceil(x / 60) stalls of 28 m², so x + 28 x / 60 <= 10,000: about 6,796 m²
     // of offices over 3,204 m² of parking (114 stalls). Before the reading changed: 10,000 m² of
     // offices over 6,912 m² of parking (three whole floors, 246 stalls for 167).
-    const high = designById(result, 'high-rise-max');
+    // On the plate the fire road and the planting leave, 10,000 m² stays under 23 m, so the squat
+    // high-rise is dropped and the slender tower carries the high-rise numbers.
+    const high = designById(result, 'slender-tower');
+    expect(result.designs.map((d) => d.id)).toEqual(['low-rise-block', 'slender-tower']);
     expect(result.regimes.highRise.rules.maxMainUseM2).toBe(10000);
     expect(high.totals.grossFloorAreaM2).toBeLessThanOrEqual(10000);
     expect(high.totals.grossFloorAreaM2).toBeGreaterThan(9999);
-    expect(high.totals.mainUseFloorAreaM2).toBeCloseTo(6796, 0);
+    expect(high.totals.mainUseFloorAreaM2).toBeGreaterThan(6780);
+    expect(high.totals.mainUseFloorAreaM2).toBeLessThan(6810);
     expect([high.totals.parkingRequired, high.totals.parkingProvided]).toEqual([114, 114]);
     expect(high.floors.every((f) => f.use === 'parking' || f.use === 'office')).toBe(true);
   });
@@ -172,9 +184,9 @@ describe('golden case 4: office on a 60 x 60 m plot with a 16 m road', () => {
     const high = designById(off, 'high-rise-max');
     expect(high.totals.mainUseFloorAreaM2).toBeLessThanOrEqual(10000);
     expect(high.totals.mainUseFloorAreaM2).toBeGreaterThan(9999);
-    // Two whole floors of 2,304 and 84 m² in a back corner of level 3: 167 stalls for 167. (A strip
-    // across the whole back would be 1.5 m deep, too narrow to park in, so the corner is 7 m deep.)
-    expect(high.totals.parkingFloorAreaM2).toBeCloseTo(4692, 0);
+    // Two whole floors of about 1,876 m² and half of level 3: 167 stalls for 167. (Before the fire
+    // road and the planting shrank the plate, two floors of 2,304 and an 84 m² corner, 4,692 m².)
+    expect(high.totals.parkingFloorAreaM2).toBeCloseTo(4690, 0);
     expect([high.totals.parkingRequired, high.totals.parkingProvided]).toEqual([167, 167]);
   });
 

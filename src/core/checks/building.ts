@@ -1,8 +1,9 @@
-/** Floor height, parking, and the informational checks (EIA, planting, fire road). */
+/** Floor height, parking, and the informational checks (EIA, planting, fire road, parking headroom). */
 import { regionArea } from '../geom';
 import { parkingNeed, stallsProvided } from '../measure/areas';
+import { FIRE_ROAD_M, PERMEABLE_SHARE } from '../measure/fire-planting';
 import { parkingLevels } from '../measure/levels';
-import { m, m2, m2Vs, mVs, num } from '../rules/format';
+import { floorAreaVs, m, m2, mVs, num } from '../rules/format';
 import type { Check } from '../types';
 import { isEnabled, makeCheck, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -11,10 +12,9 @@ import { requiredOpenSpace } from './geometry';
 /** EIA thresholds for a condo (research/01-regulations.md section 5.3). */
 export const EIA_UNITS = 80;
 export const EIA_USABLE_AREA_M2 = 4_000;
-/** Share of the open space that must be permeable planting (plan clause 14(2)). */
-export const PERMEABLE_SHARE = 0.5;
-/** Width of the fire-truck road around a high-rise (MR 33 ข้อ 3). */
-export const FIRE_ROAD_M = 6;
+export { FIRE_ROAD_M, PERMEABLE_SHARE };
+/** Clear height required under beams in parking areas (MR 41, research/01-regulations.md section 5.1). */
+export const PARKING_CLEAR_HEIGHT_M = 2.1;
 /** Title of the check, in fire-planting.ts, on whether the fire road and the planting both fit. */
 export const FIRE_PLANTING_TITLE = 'Fire road and planting together';
 /** Heights are compared to the millimetre. */
@@ -51,32 +51,54 @@ function parkingChecks(input: CheckInput, measured: Measured): readonly Check[] 
   const provided = stallsProvided(measured.sums.parking, input.assumptions);
   const levels = parkingLevels(input.floors);
   const sharedText = levels.shared === 0 ? '' : `, ${levels.shared} of them shared with main use`;
-  const perUnit = need.byUnits > 0 ? `, or ${num(need.byUnits)} for the units of 60 m² or more` : '';
+  const perUnit = need.byUnits > 0 ? `, or ${num(need.byUnits)} for the units of 60 m² or more, whichever is more` : '';
   return [
     makeCheck(input, {
       ruleId: rule.ruleId,
       title: titleOf(input, rule.ruleId, 'Car parking'),
       status: provided >= need.required ? 'pass' : 'fail',
-      required: `At least ${num(need.required)} spaces: ${num(need.byArea)} at one per ${m2(rule.m2PerStall)} of main-use floor area (${m2(measured.sums.main)})${perUnit}, whichever is more.`,
+      required: `At least ${num(need.required)} spaces: ${num(need.byArea)} at one per ${m2(rule.m2PerStall)} of main-use floor area (${m2(measured.sums.main)})${perUnit}.`,
       actual: `${num(provided)} spaces on ${levels.count} parking level${levels.count === 1 ? '' : 's'}${sharedText} (${m2(measured.sums.parking)} at ${m2(input.assumptions.parkingM2PerStall)} per space).`,
     }),
   ];
 }
 
+/**
+ * The EIA note. The threshold is "usable area" (พื้นที่ใช้สอย), whose definition was not verified, so
+ * the strictest measure is used: the total floor area of the building, parking included, with no
+ * efficiency discount.
+ */
 function eiaCheck(input: CheckInput, measured: Measured): readonly Check[] {
   const id = 'eia.threshold';
   if (input.buildingType !== 'condo' || !isEnabled(input, id)) return [];
   const need = parkingNeed(measured.sums.main, input.regime.parking, input.assumptions, input.buildingType);
-  const usable = measured.sums.main * input.assumptions.efficiency;
-  const needed = need.units >= EIA_UNITS || usable >= EIA_USABLE_AREA_M2;
-  const usableShown = m2Vs(usable, EIA_USABLE_AREA_M2);
+  const area = measured.sums.gross;
+  const needed = need.units >= EIA_UNITS || area >= EIA_USABLE_AREA_M2;
+  const shown = floorAreaVs(area, EIA_USABLE_AREA_M2);
   return [
     makeCheck(input, {
       ruleId: id,
       title: titleOf(input, id, 'Environmental impact assessment'),
       status: 'info',
-      required: `Needed at ${EIA_UNITS} units or more, or ${usableShown.limit} or more of usable area.`,
-      actual: `${num(need.units)} units and ${usableShown.value} usable: ${needed ? 'an EIA is needed' : 'no EIA needed'}.`,
+      required: `Needed at ${EIA_UNITS} units or more, or ${shown.limit} or more of usable area. Usable area is taken as the total floor area of the building, the strictest measure, until its definition is confirmed.`,
+      actual: `${num(need.units)} units and ${shown.value} of total floor area: ${needed ? 'an EIA is needed' : 'no EIA needed'}.`,
+    }),
+  ];
+}
+
+/** MR 41's clear height in car parks, which the tool cannot see: the assumed storey height is stated. */
+function parkingHeadroomCheck(input: CheckInput): readonly Check[] {
+  const rule = input.regime.parking;
+  const parking = input.floors.filter((f) => f.use === 'parking');
+  if (rule.ruleId === null || !isEnabled(input, rule.ruleId) || parking.length === 0) return [];
+  const storey = Math.min(...parking.map((f) => f.topM - f.baseM));
+  return [
+    makeCheck(input, {
+      ruleId: rule.ruleId,
+      title: 'Parking clear height',
+      status: 'info',
+      required: `At least ${m(PARKING_CLEAR_HEIGHT_M)} clear under beams and services in the parking areas, aisles and ramps (MR 41 ข้อ 4).`,
+      actual: `The parking floors are assumed ${m(storey)} floor to floor; the ${m(PARKING_CLEAR_HEIGHT_M)} clear under beams must be achieved in the structural design.`,
     }),
   ];
 }
@@ -127,6 +149,7 @@ export function buildingChecks(input: CheckInput, measured: Measured): readonly 
   return [
     ...floorHeightChecks(input),
     ...parkingChecks(input, measured),
+    ...parkingHeadroomCheck(input),
     ...eiaCheck(input, measured),
     ...permeableCheck(input, measured),
     ...fireRoadCheck(input, measured),

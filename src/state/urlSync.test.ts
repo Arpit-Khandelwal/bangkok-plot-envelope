@@ -44,7 +44,7 @@ describe('startUrlSync', () => {
   });
 
   it('ignores an invalid hash', () => {
-    window.history.replaceState(null, '', '/#v1=garbage');
+    window.history.replaceState(null, '', '/#v2=garbage');
     stop = startUrlSync();
     expect(useAppStore.getState().plot).toBeNull();
   });
@@ -56,7 +56,7 @@ describe('startUrlSync', () => {
     useAppStore.getState().toggleRule('mr33.far-10');
     expect(window.location.hash).toBe('');
     vi.advanceTimersByTime(URL_WRITE_DEBOUNCE_MS);
-    expect(window.location.hash.startsWith('#v1=')).toBe(true);
+    expect(window.location.hash.startsWith('#v2=')).toBe(true);
     expect(window.location.hash).toContain('mr33.far-10');
     expect(window.history.length).toBe(length);
   });

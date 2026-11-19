@@ -68,3 +68,13 @@ describe('Results without designs', () => {
     expect(screen.queryByRole('heading', { name: 'Concept designs' })).toBeNull();
   });
 });
+
+describe('Results with one design', () => {
+  it('says only one design fits', () => {
+    const [first] = sampleEvaluation.designs;
+    if (!first) throw new Error('needs a design');
+    const evaluation = { ...sampleEvaluation, designs: [first] };
+    render(<Results evaluation={evaluation} design={first} />);
+    expect(screen.getByText('Only one design fits this plot under the current rules.')).toBeTruthy();
+  });
+});

@@ -1,4 +1,5 @@
 import type { CheckStatus } from '../../core/types';
+import { QUALIFIED_PASS_WORD } from '../results/whatIf';
 
 export const STATUS_WORDS: Readonly<Record<CheckStatus, string>> = {
   pass: 'Pass',
@@ -9,6 +10,8 @@ export const STATUS_WORDS: Readonly<Record<CheckStatus, string>> = {
 
 export interface StatusMarkProps {
   readonly status: CheckStatus;
+  /** True in a what-if state: a pass is then spelled out as holding only under the current reading. */
+  readonly qualified?: boolean;
 }
 
 /** Each status has its own shape and word, so colour is never the only signal. */
@@ -45,11 +48,12 @@ function StatusShape({ status }: StatusMarkProps) {
   }
 }
 
-export function StatusMark({ status }: StatusMarkProps) {
+export function StatusMark({ status, qualified = false }: StatusMarkProps) {
+  const word = status === 'pass' && qualified ? QUALIFIED_PASS_WORD : STATUS_WORDS[status];
   return (
     <span className={`status-mark status-mark--${status}`}>
       <StatusShape status={status} />
-      <span className="status-mark__word">{STATUS_WORDS[status]}</span>
+      <span className="status-mark__word">{word}</span>
     </span>
   );
 }

@@ -121,6 +121,11 @@ export interface UniformSetbackSpec extends Base {
   readonly what: string;
   /** Why this applies, when it rests on an assumption. */
   readonly assumption?: string;
+  /**
+   * When true, the requirement says so plainly where other setbacks on this plot already keep the
+   * building further back on every edge this rule covers, so the rule changes no number.
+   */
+  readonly noteWhenCovered?: boolean;
 }
 
 export interface WaterwaySetbackSpec extends Base {

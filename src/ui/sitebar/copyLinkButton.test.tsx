@@ -34,7 +34,7 @@ describe('CopyLinkButton', () => {
     render(<CopyLinkButton />);
     await user.click(screen.getByRole('button', { name: 'Copy link' }));
     expect(writeText).toHaveBeenCalledWith(window.location.href);
-    expect(window.location.href).toContain('#v1=');
+    expect(window.location.href).toContain('#v2=');
     const region = document.querySelector('[aria-live="polite"]') as HTMLElement;
     expect(region.textContent).toBe('Link copied');
     act(() => {

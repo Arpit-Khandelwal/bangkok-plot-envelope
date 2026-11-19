@@ -10,6 +10,7 @@ import type {
   Site,
 } from '../types';
 import type { RuleSpec } from './data/spec';
+import { m } from './format';
 import { bindingHeightIds } from './height-binding';
 import type { Resolution } from './kinds';
 
@@ -100,6 +101,21 @@ function toApplied(r: ResolvedRule, binding: ReadonlySet<string>): AppliedRule {
   };
 }
 
+/**
+ * A rule asking to be told (`noteWhenCovered`) says so in its requirement when, on every edge it
+ * covers, another rule already sets a larger distance: it binds nothing on this plot.
+ */
+function withCoverNote(r: ResolvedRule, setbacks: readonly EdgeSetback[]): ResolvedRule {
+  if (r.disabled || r.spec.kind !== 'uniformSetback' || r.spec.noteWhenCovered !== true) return r;
+  const demands = r.resolution.effects.setbacks ?? [];
+  const others = demands.map((d) => setbacks.find((s) => s.edgeIndex === d.edgeIndex));
+  const covered = demands.length > 0 && others.every((s, i) => s !== undefined && s.distanceM > (demands[i]?.distanceM ?? 0));
+  if (!covered) return r;
+  const least = Math.min(...others.map((s) => s?.distanceM ?? 0));
+  const note = ` Other setbacks already keep the building at least ${m(least)} from these edges on this plot, so this rule changes no number here.`;
+  return { ...r, resolution: { ...r.resolution, requirement: `${r.resolution.requirement}${note}` } };
+}
+
 export function enabledLimits(resolved: readonly ResolvedRule[]): readonly GfaLimit[] {
   return resolved.filter((r) => !r.disabled).flatMap((r) => r.resolution.effects.gfaLimits ?? []);
 }
@@ -151,6 +167,6 @@ export function aggregate(
     openSpace: effects.flatMap((e) => (e.openSpace === undefined ? [] : [e.openSpace])),
     parking: effects.find((e) => e.parking !== undefined)?.parking ?? NO_PARKING,
     minFloorToFloorM: floorHeights.length === 0 ? 0 : Math.max(...floorHeights),
-    rules: sortByCategory(resolved.map((r) => toApplied(r, binding))),
+    rules: sortByCategory(resolved.map((r) => toApplied(withCoverNote(r, setbacks), binding))),
   };
 }

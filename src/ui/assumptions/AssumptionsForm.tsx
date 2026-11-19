@@ -1,7 +1,7 @@
-import { useId } from 'react';
 import type { Assumptions } from '../../core/types';
 import { useAppStore } from '../../state/store';
 import { NumberField } from '../common/NumberField';
+import { InterpretationSwitches } from './InterpretationSwitches';
 
 interface AssumptionField {
   readonly key: keyof Assumptions;
@@ -29,13 +29,6 @@ const PERCENT = 100;
 export function AssumptionsForm() {
   const assumptions = useAppStore((state) => state.assumptions);
   const setAssumption = useAppStore((state) => state.setAssumption);
-  const parkingCountsInFar = useAppStore((state) => state.interpretation.parkingCountsInFar);
-  const setInterpretation = useAppStore((state) => state.setInterpretation);
-  const officeParkingCounts = useAppStore((state) => state.interpretation.officeParkingCountsInOperatingArea);
-  const switchId = useId();
-  const explainId = useId();
-  const officeSwitchId = useId();
-  const officeExplainId = useId();
 
   return (
     <details className="panel-section disclosure" aria-label="Assumptions (not law)">
@@ -60,40 +53,7 @@ export function AssumptionsForm() {
             );
           })}
         </div>
-        <div className="switch switch--block">
-          <input
-            id={switchId}
-            type="checkbox"
-            role="switch"
-            className="switch__input"
-            checked={parkingCountsInFar}
-            onChange={(event) => setInterpretation('parkingCountsInFar', event.target.checked)}
-            aria-describedby={explainId}
-          />
-          <label htmlFor={switchId} className="switch__label">
-            Count parking floors toward the floor area ratio (FAR)
-          </label>
-        </div>
-        <p id={explainId} className="number-field__hint">
-          On by default: the 2013 plan excludes nothing from floor area and exempts only extra public parking.
-        </p>
-        <div className="switch switch--block">
-          <input
-            id={officeSwitchId}
-            type="checkbox"
-            role="switch"
-            className="switch__input"
-            checked={officeParkingCounts}
-            onChange={(event) => setInterpretation('officeParkingCountsInOperatingArea', event.target.checked)}
-            aria-describedby={officeExplainId}
-          />
-          <label htmlFor={officeSwitchId} className="switch__label">
-            Count an office&apos;s own parking in its operating area
-          </label>
-        </div>
-        <p id={officeExplainId} className="number-field__hint">
-          The plan measures offices by operating area. Whether an office&apos;s own car park counts is not settled; the safer reading counts it.
-        </p>
+        <InterpretationSwitches />
       </div>
     </details>
   );

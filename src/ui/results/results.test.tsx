@@ -144,6 +144,42 @@ describe('WhatIfNotice', () => {
   });
 });
 
+describe('WhatIfNotice readings', () => {
+  const READING = 'Parking floors are not counted toward the floor area ratio.';
+
+  it('shows readings alone with the cautious-readings button, which resets the settings', async () => {
+    const user = userEvent.setup();
+    resetStore({ interpretation: { ...useAppStore.getState().interpretation, parkingCountsInFar: false } });
+    render(<WhatIfNotice readings={[READING]} />);
+    expect(screen.getByText('This result uses a less cautious reading of the rules.')).toBeTruthy();
+    expect(screen.getByText(READING)).toBeTruthy();
+    expect(screen.queryByText(/switched off/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Use the default readings' }));
+    expect(useAppStore.getState().interpretation.parkingCountsInFar).toBe(true);
+  });
+
+  it('shows both parts in one notice', () => {
+    resetStore({ disabledRuleIds: ['plan.far'] });
+    const { container } = render(<WhatIfNotice readings={[READING]} />);
+    expect(container.querySelectorAll('aside')).toHaveLength(1);
+    expect(screen.getByText('1 rule is switched off.')).toBeTruthy();
+    expect(screen.getByText(READING)).toBeTruthy();
+  });
+
+  it('spells out the pass mark and summary while the notice shows', () => {
+    const { rerender } = render(<Checklist checks={lowRise.checks} />);
+    expect(screen.queryByText('Passes under this reading')).toBeNull();
+    rerender(<Checklist checks={lowRise.checks} qualified />);
+    expect(screen.getAllByText('Passes under this reading').length).toBeGreaterThan(0);
+    expect(checklistSummary(lowRise.checks, true)).toContain('checks pass under this reading');
+  });
+
+  it('qualifies the design comparison result', () => {
+    render(<DesignSwitcher designs={sampleEvaluation.designs} selectedId={lowRise.id} qualified />);
+    expect(screen.getAllByText('Passes under this reading').length).toBeGreaterThan(0);
+  });
+});
+
 describe('DesignSwitcher', () => {
   it('shows each design with its result and selects on click', async () => {
     const user = userEvent.setup();

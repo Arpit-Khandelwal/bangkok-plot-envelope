@@ -93,6 +93,12 @@ export interface Interpretation {
    * use, and the safe reading counts the office's own car park (research/05-office-hotel-rules.md §2).
    */
   readonly officeParkingCountsInOperatingArea: boolean;
+  /**
+   * Whether the Bangkok ordinance ข้อ 52(6) front open space is also required of a building on a
+   * public road (the stricter reading). Default false: it is read as being for buildings not on a
+   * public road, and a building on one is governed by ข้อ 53 (DECISIONS.md B12).
+   */
+  readonly frontOpenSpaceOnPublicRoad: boolean;
 }
 
 export interface Scenario {
@@ -417,6 +423,12 @@ export type Evaluation =
       readonly problems: readonly Problem[];
       /** True when any rule is switched off, so results are not a compliance statement. */
       readonly hypothetical: boolean;
+      /**
+       * One plain sentence per reading of unclear law set away from its conservative default
+       * (`Interpretation`), e.g. "Parking floors are not counted toward the floor area ratio.".
+       * Empty when every reading is the default. Show these beside the result.
+       */
+      readonly nonDefaultReadings: readonly string[];
       readonly regimes: Readonly<Record<RegimeId, RegimeResult>>;
       readonly designs: readonly Design[];
     };

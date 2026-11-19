@@ -164,6 +164,7 @@ export const sampleEvaluation: OkEvaluation = {
   site: SITE,
   problems: [],
   hypothetical: false,
+  nonDefaultReadings: [],
   regimes: {
     lowRise: {
       rules: sampleRegimeRules('lowRise'),

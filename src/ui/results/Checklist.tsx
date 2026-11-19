@@ -15,29 +15,31 @@ export function orderChecks(checks: readonly Check[]): Check[] {
 
 export interface ChecklistProps {
   readonly checks: readonly Check[];
+  /** True while the what-if notice is showing. */
+  readonly qualified?: boolean;
 }
 
 /** "5 of 8 checks pass", then how many to check on site and how many fail, when any. */
-export function checklistSummary(checks: readonly Check[]): string {
+export function checklistSummary(checks: readonly Check[], qualified = false): string {
   const count = (status: CheckStatus): number => checks.filter((check) => check.status === status).length;
-  const parts = [`${count('pass')} of ${checks.length} checks pass`];
+  const parts = [`${count('pass')} of ${checks.length} checks pass${qualified ? ' under this reading' : ''}`];
   if (count('warn') > 0) parts.push(`${count('warn')} to check on site`);
   if (count('fail') > 0) parts.push(`${count('fail')} fail`);
   return parts.join(', ');
 }
 
-export function Checklist({ checks }: ChecklistProps) {
+export function Checklist({ checks, qualified = false }: ChecklistProps) {
   return (
     <section className="panel-section" aria-labelledby="checks-heading">
       <h2 id="checks-heading" className="panel-section__title">
         Checks
       </h2>
-      <p className="checklist__summary">{checklistSummary(checks)}</p>
+      <p className="checklist__summary">{checklistSummary(checks, qualified)}</p>
       <ol className="checklist">
         {orderChecks(checks).map((check, index) => (
           <li key={`${check.ruleId}-${index}`} className={`check check--${check.status}`}>
             <div className="check__head">
-              <StatusMark status={check.status} />
+              <StatusMark status={check.status} qualified={qualified} />
               <h3 className="check__title"><ThaiText>{check.title}</ThaiText></h3>
             </div>
             <dl className="check__values">

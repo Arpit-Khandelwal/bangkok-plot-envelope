@@ -4,6 +4,7 @@ import type { DesignContext } from '../designs/context';
 import { largestPiece, regionWidth } from '../geom';
 import { m } from '../rules/format';
 import { generateDesigns } from '../designs/variants';
+import { nonDefaultReadings } from '../readings';
 import { planFarRatio, resolveRules } from '../rules';
 import type { Evaluation, Problem, RegimeId, RegimeResult, RegimeRules, Scenario, Site } from '../types';
 import { saneAssumptions } from './assumptions';
@@ -71,6 +72,7 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
       stationDistanceM: scenario.stationDistanceM,
       reading,
       disabledRuleIds: new Set(scenario.disabledRuleIds),
+      frontOpenSpaceOnPublicRoad: scenario.interpretation.frontOpenSpaceOnPublicRoad,
     },
     allowedFar: planFarRatio(scenario.zone, scenario.buildingType),
     hypothetical,
@@ -81,6 +83,7 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
   };
   const problems: Problem[] = [
     ...sane.problems,
+    ...set.problems,
     ...REGIMES.flatMap((r) => {
       const p = heightOffProblem(resolved[r]);
       return p === null ? [] : [p];
@@ -92,6 +95,7 @@ export function runEvaluation(site: Site, scenario: Scenario): Evaluation {
     site,
     problems,
     hypothetical,
+    nonDefaultReadings: nonDefaultReadings(scenario.interpretation),
     regimes: { lowRise: result('lowRise'), highRise: result('highRise') },
     designs: set.designs,
   };

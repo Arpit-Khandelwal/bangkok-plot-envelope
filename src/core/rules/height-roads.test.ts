@@ -162,6 +162,7 @@ describe('the height check decides for itself which roads apply', () => {
       stationDistanceM: s.stationDistanceM,
       reading: { planFarRuleIds: new Set(['plan.far']), parkingCountsInFar: true, parkingCountsInOperatingArea: true },
       disabledRuleIds: new Set(),
+      frontOpenSpaceOnPublicRoad: false,
     });
     const height = checks.find((c) => c.ruleId === 'mr55.height-2x');
     expect(height?.status).toBe('fail');

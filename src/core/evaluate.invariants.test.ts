@@ -11,6 +11,7 @@ const OUTSIDE_TOLERANCE_M2 = 0.05;
 /** Opening a habitable floor outline again may remove at most this much (grid rounding). */
 const NARROW_TOLERANCE_M2 = 0.5;
 const SUM_TOLERANCE = 1e-6;
+const MAX_SPARE_STALLS = 2;
 
 /** Every number reachable from the value, typed arrays included. */
 function nonFiniteNumbers(value: unknown, path = '$'): string[] {
@@ -94,11 +95,13 @@ describe('invariants over 30 plots and the example plots', () => {
     }
   });
 
-  it.each(RESULTS)('$name: parking provides the required stalls and at most one more', ({ result }) => {
+  // At most two spare: on the small plates the fire road and the front open space now leave, the
+  // smallest parking piece that can be cut (about 48 m², nearly two stalls) can overshoot by two.
+  it.each(RESULTS)('$name: parking provides the required stalls and at most two more', ({ result }) => {
     if (!result.ok) return;
     for (const d of result.designs) {
       expect(d.totals.parkingProvided).toBeGreaterThanOrEqual(d.totals.parkingRequired);
-      expect(d.totals.parkingProvided - d.totals.parkingRequired).toBeLessThanOrEqual(1);
+      expect(d.totals.parkingProvided - d.totals.parkingRequired).toBeLessThanOrEqual(MAX_SPARE_STALLS);
     }
   });
 

@@ -1,6 +1,6 @@
 /** Floor-area limits and the low-rise thresholds. */
 import { measuredArea, meetsLimit } from '../measure/areas';
-import { m, m2, m2Vs, mVs, numVs } from '../rules/format';
+import { floorAreaVs, m, m2, m2Vs, mVs, num } from '../rules/format';
 import type { Check, GfaLimit } from '../types';
 import { isEnabled, makeCheck, passFail, titleOf } from './context';
 import type { CheckInput, Measured } from './context';
@@ -25,10 +25,10 @@ function measureLabel(input: CheckInput, limit: GfaLimit): string {
 
 function limitCheck(input: CheckInput, measured: Measured, limit: GfaLimit): Check {
   const area = measuredArea(limit, measured.sums, input.reading);
-  const shown = m2Vs(area, limit.limitM2);
+  const shown = floorAreaVs(area, limit.limitM2);
   const bound = limit.exclusive ? `under ${shown.limit}` : `at most ${shown.limit}`;
-  const ratio = numVs(area / input.site.areaM2, limit.limitM2 / input.site.areaM2);
-  const far = input.reading.planFarRuleIds.has(limit.ruleId) ? ` (FAR ${ratio.value})` : '';
+  // To two decimals, rounded as the design's FAR is everywhere else it is shown.
+  const far = input.reading.planFarRuleIds.has(limit.ruleId) ? ` (FAR ${num(area / input.site.areaM2)})` : '';
   return makeCheck(input, {
     ruleId: limit.ruleId,
     title: titleOf(input, limit.ruleId, 'Floor-area limit'),

@@ -6,8 +6,11 @@
  * has an envelope. A design that fails its own checks is never returned unless rules are off.
  * The slender tower slides toward the road when that meets the ordinance's road-facing façade rule.
  */
-import { regionArea } from '../geom';
-import type { Design, RegimeId } from '../types';
+import { regionArea, unionAll } from '../geom';
+import { FRONT_FACADE_SHARE } from '../measure/front-access';
+import { frontVerdict } from './front-rule';
+import type { FrontVerdict } from './front-rule';
+import type { Design, Problem, RegimeId } from '../types';
 import type { CheckBase } from './assemble';
 import { assembleDesign } from './assemble';
 import type { DesignContext } from './context';
@@ -16,7 +19,7 @@ import type { Generated, VariantOptions } from './generate';
 import type { AreaSums } from '../measure/areas';
 import { levelCount, roofDeck } from '../measure/levels';
 import type { StopReason } from './stack';
-import { slideTowardRoad } from './slide';
+import { bandAlongRoad, slideTowardRoad } from './slide';
 import { highRiseSummary, lowRiseSummary, openGroundSummary, slenderSummary } from './summary';
 
 /** Classification thresholds for "genuinely high-rise or extra-large" (MR 33 ข้อ 1). */
@@ -32,6 +35,11 @@ const SLENDER_MIN_EXTRA_STOREYS = 3;
  */
 const OPEN_GROUND_SHARES: readonly number[] = [0.6, 0.75, 0.9];
 const MIN_DESIGNS = 2;
+/**
+ * A fallback plate can come out smaller than its target (the open-space cap), but it is taken as at
+ * least this share of it when ruling a target out, so a plate that might qualify is still tried.
+ */
+const MIN_PLATE_SHARE_OF_TARGET = 0.5;
 
 export interface DesignInputs {
   readonly contexts: Readonly<Record<RegimeId, DesignContext | null>>;
@@ -45,7 +53,12 @@ export interface DesignSet {
   readonly designs: readonly Design[];
   /** What stopped each regime's largest design, for naming the binding rule. */
   readonly stops: Readonly<Record<RegimeId, { readonly stop: StopReason; readonly sums: AreaSums } | null>>;
+  /** Non-blocking reasons a regime offers no design, beyond the general ones. */
+  readonly problems: readonly Problem[];
 }
+
+export const FIRE_ROAD_PROBLEM =
+  'No high-rise design is offered: on every plate that fits, the 6 m fire road all around the building (Ministerial Regulation 33, clause 3) leaves too little open ground for the permeable planting the plan requires (half the open space).';
 
 const LARGEST: VariantOptions = { plateAreaM2: Number.POSITIVE_INFINITY };
 
@@ -61,36 +74,67 @@ const FRONT_ACCESS_RULE = 'bma.front-access';
 /** A slid tower may lose at most this much floor area against the centred one. */
 const SLIDE_AREA_TOLERANCE_M2 = 1;
 
-function frontAccessPasses(d: Design): boolean {
-  return d.checks.some((c) => c.ruleId === FRONT_ACCESS_RULE && c.status === 'pass');
+/** The front-access verdict for the generated floors, as the check will judge them (see `front-rule.ts`). */
+function verdictOf(ctx: DesignContext, g: Generated): FrontVerdict {
+  const input = { site: ctx.site, regime: ctx.regime, strict: ctx.strictFront, buildingType: ctx.buildingType, storeys: levelCount(g.stack.floors), heightM: roofDeck(g.stack.floors) };
+  return frontVerdict(input, unionAll(g.stack.floors.map((f) => f.outline)));
 }
 
 /**
- * The slender tower, moved toward the road when that lets it meet the ordinance ข้อ 53 and it
- * still passes every check with the same floor area; otherwise left centred (its check then warns).
+ * True when no plate of `areaM2` with the storeys of `g` can meet the ordinance: the building falls
+ * under ข้อ 53, whose road-facing façade must exceed an eighth of the perimeter, and the roads'
+ * whole length is under an eighth of the shortest perimeter that area can have (a circle's).
+ */
+function cannotMeetFront(ctx: DesignContext, g: Generated, areaM2: number): boolean {
+  if (!frontRuleOn(ctx) || verdictOf(ctx, g).clause !== 'clause53') return false;
+  const roadM = ctx.site.edges.reduce((sum, e) => sum + (e.spec.kind === 'road' ? e.lengthM : 0), 0);
+  return roadM <= FRONT_FACADE_SHARE * 2 * Math.sqrt(Math.PI * areaM2);
+}
+
+function frontRuleOn(ctx: DesignContext): boolean {
+  return ctx.regime.rules.some((r) => r.id === FRONT_ACCESS_RULE && !r.disabled);
+}
+
+/**
+ * The design, when it falls under ข้อ 53 and misses it where it stands: moved toward the road, or
+ * else rebuilt on a band along the road, whichever first meets it and still passes every check with
+ * the same floor area; otherwise left where it is.
  */
 function preferNearRoad(
   ctx: DesignContext,
-  centred: Generated,
+  placed: Generated,
   opts: VariantOptions,
   make: (g: Generated) => Design,
   keeps: (g: Generated) => boolean,
 ): Design {
-  const design = make(centred);
-  if (frontAccessPasses(design)) return design;
-  const slid = slideTowardRoad(ctx, centred, opts);
-  if (slid === null || !keeps(slid)) return design;
-  const moved = make(slid);
-  const sameArea = moved.totals.grossFloorAreaM2 >= design.totals.grossFloorAreaM2 - SLIDE_AREA_TOLERANCE_M2;
-  return moved.passes && sameArea && frontAccessPasses(moved) ? moved : design;
+  const design = make(placed);
+  if (!frontRuleOn(ctx)) return design;
+  const verdict = verdictOf(ctx, placed);
+  if (verdict.met || verdict.clause !== 'clause53') return design;
+  for (const place of [slideTowardRoad, bandAlongRoad]) {
+    const found = place(ctx, placed, opts);
+    if (found === null || !keeps(found) || !verdictOf(ctx, found).met) continue;
+    const moved = make(found);
+    const sameArea = moved.totals.grossFloorAreaM2 >= design.totals.grossFloorAreaM2 - SLIDE_AREA_TOLERANCE_M2;
+    if (moved.passes && sameArea) return moved;
+  }
+  return design;
+}
+
+/** True when the design fails its front-access check. */
+function frontFails(d: Design): boolean {
+  return d.checks.some((c) => c.ruleId === FRONT_ACCESS_RULE && c.status === 'fail');
 }
 
 export function generateDesigns(inputs: DesignInputs): DesignSet {
   const { contexts, base, allowedFar } = inputs;
   const out: Design[] = [];
-  const add = (g: Generated | null, make: (g: Generated) => Design): void => {
+  // Every design moves toward the road when that lets it meet ข้อ 53. One that still fails its
+  // front-access clause is ruled out by the ordinance as read, so it is never a candidate.
+  const add = (ctx: DesignContext, g: Generated | null, opts: VariantOptions, make: (g: Generated) => Design, keeps: (g: Generated) => boolean = () => true): void => {
     if (g === null || g.stack.floors.length === 0) return;
-    const design = make(g);
+    const design = preferNearRoad(ctx, g, opts, make, keeps);
+    if (frontFails(design)) return;
     if (design.passes || inputs.hypothetical) out.push(design);
   };
   const finish = (ctx: DesignContext, g: Generated, id: string, name: string, summarise: (d: Omit<Design, 'summary'>) => string): Design =>
@@ -100,10 +144,10 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
   const high = contexts.highRise;
   const a = low === null ? null : generateVariant(low, LARGEST);
   const b = high === null ? null : generateVariant(high, LARGEST);
-  if (low !== null) add(a, (g) => finish(low, g, 'low-rise-block', 'Low-rise block', (d) => lowRiseSummary(d, low.regime, g.stack.stop, low.reading)));
-  if (high !== null && b !== null && isGenuinelyHigh(b)) {
-    add(b, (g) => finish(high, g, 'high-rise-max', 'High-rise, maximum floor area', (d) => highRiseSummary(d, high.regime, g.stack.stop, high.reading)));
-  }
+  const highMax = (h: DesignContext) => (g: Generated): Design =>
+    finish(h, g, 'high-rise-max', 'High-rise, maximum floor area', (d) => highRiseSummary(d, h.regime, g.stack.stop, h.reading));
+  if (low !== null) add(low, a, LARGEST, (g) => finish(low, g, 'low-rise-block', 'Low-rise block', (d) => lowRiseSummary(d, low.regime, g.stack.stop, low.reading)));
+  if (high !== null && b !== null && isGenuinelyHigh(b)) add(high, b, LARGEST, highMax(high), isGenuinelyHigh);
   if (high !== null && b !== null) {
     const cOpts: VariantOptions = { plateAreaM2: SLENDER_SHARE * regionArea(b.plate), grossCapM2: b.stack.sums.gross };
     const centred = generateVariant(high, cOpts);
@@ -111,7 +155,7 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
     const make = (g: Generated): Design =>
       finish(high, g, 'slender-tower', 'Slender tower', (d) => slenderSummary(d, high.regime, g.stack.stop, SLENDER_SHARE, b.stack.sums, high.reading));
     if (centred !== null && tallEnough(centred) && isGenuinelyHigh(centred)) {
-      add(centred, (g) => preferNearRoad(high, g, cOpts, make, (s) => tallEnough(s) && isGenuinelyHigh(s)));
+      add(high, centred, cOpts, make, (s) => tallEnough(s) && isGenuinelyHigh(s));
     }
   }
   const fallbacks: ReadonlyArray<readonly [DesignContext | null, Generated | null, string, string]> = [
@@ -122,11 +166,19 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
     for (const share of OPEN_GROUND_SHARES) {
       if (out.length >= MIN_DESIGNS || ctx === null || max === null) break;
       const opts: VariantOptions = { plateAreaM2: share * regionArea(max.plate), maxStoreys: levelCount(max.stack.floors) };
-      add(generateVariant(ctx, opts), (g) => finish(ctx, g, id, name, (d) => openGroundSummary(d, share)));
+      if (cannotMeetFront(ctx, max, opts.plateAreaM2 * MIN_PLATE_SHARE_OF_TARGET)) continue;
+      add(ctx, generateVariant(ctx, opts), opts, (g) => finish(ctx, g, id, name, (d) => openGroundSummary(d, share)));
     }
   }
   if (out.length < MIN_DESIGNS && high !== null && b !== null && !out.some((d) => d.id === 'high-rise-max')) {
-    add(b, (g) => finish(high, g, 'high-rise-max', 'High-rise, maximum floor area', (d) => highRiseSummary(d, high.regime, g.stack.stop, high.reading)));
+    add(high, b, LARGEST, highMax(high));
   }
-  return { designs: out, stops: { lowRise: stopOf(a), highRise: stopOf(b) } };
+  return { designs: out, stops: { lowRise: stopOf(a), highRise: stopOf(b) }, problems: fireRoadProblems(high, b) };
+}
+
+/** The reason no high-rise is offered when only the fire road and the planting stand in the way. */
+function fireRoadProblems(high: DesignContext | null, b: Generated | null): readonly Problem[] {
+  if (high === null || b !== null || !high.fireRoad) return [];
+  if (generateVariant({ ...high, fireRoad: false }, LARGEST) === null) return [];
+  return [{ code: 'no-design', message: FIRE_ROAD_PROBLEM, blocking: false }];
 }

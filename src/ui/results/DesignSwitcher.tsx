@@ -7,6 +7,8 @@ import { formatM2, formatMetres, plural } from "../format";
 export interface DesignSwitcherProps {
   readonly designs: readonly Design[];
   readonly selectedId: string;
+  /** True while the what-if notice is showing. */
+  readonly qualified?: boolean;
 }
 
 function failedCount(design: Design): number {
@@ -20,7 +22,7 @@ function cellClass(design: Design, selectedId: string): string {
 }
 
 /** The designs side by side, one column each. The column header selects the design. */
-export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
+export function DesignSwitcher({ designs, selectedId, qualified = false }: DesignSwitcherProps) {
   const selectDesign = useAppStore((state) => state.selectDesign);
   const selected = designs.find((design) => design.id === selectedId);
   const showBoth = designs.some(
@@ -117,7 +119,7 @@ export function DesignSwitcher({ designs, selectedId }: DesignSwitcherProps) {
               <th scope="row">Result</th>
               {designs.map((design) => (
                 <td key={design.id} className={cellClass(design, selectedId)}>
-                  <StatusMark status={design.passes ? "pass" : "fail"} />
+                  <StatusMark status={design.passes ? "pass" : "fail"} qualified={qualified} />
                   {design.passes ? null : (
                     <span className="compare__fails">
                       {plural(failedCount(design), "check")} failed

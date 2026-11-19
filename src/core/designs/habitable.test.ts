@@ -76,7 +76,10 @@ describe('a plot too narrow for a usable floor', () => {
 
 describe('step-back terraces', () => {
   // A long, shallow plot on a 12 m road: the slender tower steps back from the road as it rises.
-  const shallow = scenario(rect(80, 30), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR]);
+  // The 12 m front open space and the planting beside the fire road are switched off here: they
+  // shrink and push back the plates until no tower rises far enough to step back, and this case is
+  // about the step-backs.
+  const shallow = scenario(rect(80, 30), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR], { disabledRuleIds: ['bma.front-access', 'plan.permeable'] });
   const e = expectOk(evaluate(shallow));
   const tower = designById(e, 'slender-tower');
   const levels = [...new Set(tower.floors.map((f) => f.level))];
