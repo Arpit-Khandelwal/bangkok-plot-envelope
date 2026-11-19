@@ -38,11 +38,5 @@ export function num(value: number): string {
   return formatNumber(value, MAX_LENGTH_DECIMALS);
 }
 
-/** "edge 1", "edges 1 and 3", "edges 1, 2 and 4" (1-based for display). */
-export function edgeList(indices: readonly number[]): string {
-  const labels = indices.map((i) => String(i + 1));
-  if (labels.length === 0) return 'no edges';
-  if (labels.length === 1) return `edge ${labels[0] ?? ''}`;
-  const last = labels[labels.length - 1] ?? '';
-  return `edges ${labels.slice(0, -1).join(', ')} and ${last}`;
-}
+/** "edge A", "edges A and C": site-edge indices named by the letter of the drawn edge. */
+export { edgeListText as edgeList } from '../edgeNames';

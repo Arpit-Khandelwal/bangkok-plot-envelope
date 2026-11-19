@@ -12,7 +12,7 @@ export function siteFromRing(ring: readonly Pt[], specs: readonly EdgeSpec[] = [
   const n = ring.length;
   const edges: EdgeInfo[] = ring.map((from, i) => {
     const to = ring[(i + 1) % n] as Pt;
-    return { index: i, spec: specs[i] ?? NEIGHBOUR, lengthM: Math.hypot(to.x - from.x, to.y - from.y), from, to };
+    return { index: i, sourceIndex: i, spec: specs[i] ?? NEIGHBOUR, lengthM: Math.hypot(to.x - from.x, to.y - from.y), from, to };
   });
   return { frame: { origin: [100.609, 13.689] }, ring, areaM2: signedArea(ring), perimeterM: perimeter(ring), edges };
 }

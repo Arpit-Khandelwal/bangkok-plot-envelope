@@ -27,7 +27,7 @@ export function rectSite(w: number, d: number, specs: readonly [EdgeSpec, EdgeSp
   const edges = specs.map((spec, index) => {
     const from = ring[index] ?? { x: 0, y: 0 };
     const to = ring[(index + 1) % ring.length] ?? { x: 0, y: 0 };
-    return { index, spec, lengthM: lengths[index] ?? 0, from, to };
+    return { index, sourceIndex: index, spec, lengthM: lengths[index] ?? 0, from, to };
   });
   return {
     frame: { origin: [100.6, 13.7] },

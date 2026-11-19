@@ -22,7 +22,7 @@ export const resolveUniformSetback: Resolver<UniformSetbackSpec> = (spec, input)
   const requirement =
     edges.length === 0
       ? `Keep ${spec.what} at least ${m(spec.distanceM)} from ${targets}; this plot has no such edge.`
-      : `Keep ${spec.what} at least ${m(spec.distanceM)} from ${targets} (${edgeList(edges.map((e) => e.index))}).`;
+      : `Keep ${spec.what} at least ${m(spec.distanceM)} from ${targets} (${edgeList(input.site, edges.map((e) => e.index))}).`;
   return {
     requirement,
     ...(spec.assumption === undefined ? {} : { basis: spec.assumption }),
@@ -52,7 +52,7 @@ export const resolveWaterwaySetback: Resolver<WaterwaySetbackSpec> = (spec, inpu
     return { requirement: 'No plot edge faces a public waterway, so no waterway setback applies.', effects: {} };
   }
   const requirement = parts
-    .map((p) => `Keep the building at least ${m(p.distance)} from the ${m(p.width)} wide waterway (${edgeList([p.edgeIndex])}).`)
+    .map((p) => `Keep the building at least ${m(p.distance)} from the ${m(p.width)} wide waterway (${edgeList(input.site, [p.edgeIndex])}).`)
     .join(' ');
   const bandText = spec.bands
     .map((b) => (b.belowWidthM === null ? `${m(b.distanceM)} otherwise` : `${m(b.distanceM)} for a waterway under ${m(b.belowWidthM)} wide`))

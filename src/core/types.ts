@@ -147,8 +147,8 @@ export interface AppliedRule {
 export interface EdgeSetback {
   readonly edgeIndex: number;
   readonly distanceM: number;
-  /** Id of the rule that set this distance (the strictest one). */
-  readonly ruleId: string;
+  /** Id of the rule that set this distance (the strictest one), or null when no rule sets one. */
+  readonly ruleId: string | null;
 }
 
 /** Height limit that rises away from a road: height <= slope x (distance from edge + rowWidthM). */
@@ -183,7 +183,8 @@ export interface ParkingRule {
   readonly m2PerStall: number;
   /** Stalls per dwelling unit of 60 m2 or more. 0 when the type has no per-unit rule. */
   readonly stallsPerLargeUnit: number;
-  readonly ruleId: string;
+  /** Null when no rule requires parking (for example, the parking rule is switched off). */
+  readonly ruleId: string | null;
 }
 
 /** Everything the geometry needs for one regime, resolved from the rule data. */
@@ -201,7 +202,14 @@ export interface RegimeRules {
   readonly gfaLimits: readonly GfaLimit[];
   /** The smallest `totalFloorArea` limit. */
   readonly maxGfaM2: number;
-  readonly bindingGfaRuleId: string;
+  /**
+   * The rule that limits this regime's floor area. Starts as the strictest floor-area limit and is
+   * replaced by a geometric rule (height plane, open space) once designs show that it binds first.
+   * Null when nothing limits it, e.g. every floor-area rule is switched off.
+   */
+  readonly bindingGfaRuleId: string | null;
+  /** The rule behind `maxMainUseM2`, or null when there is none. */
+  readonly bindingMainUseRuleId: string | null;
   /** The smallest `mainUseFloorArea` limit, or null when there is none. */
   readonly maxMainUseM2: number | null;
   readonly openSpace: readonly OpenSpaceRequirement[];
@@ -214,7 +222,14 @@ export interface RegimeRules {
 // ---------- Outputs ----------
 
 export interface EdgeInfo {
+  /** Index into `site.edges`. */
   readonly index: number;
+  /**
+   * Index of this edge in the plot as the user drew it (`scenario.edges`). `buildSite` may reverse
+   * a clockwise plot or merge duplicate corners, so it can differ from `index`. Name edges to the
+   * user by this index (`edgeLetter(sourceIndex)`).
+   */
+  readonly sourceIndex: number;
   readonly spec: EdgeSpec;
   readonly lengthM: number;
   readonly from: Pt;
@@ -287,6 +302,13 @@ export interface DesignTotals {
   readonly units: number;
   readonly parkingRequired: number;
   readonly parkingProvided: number;
+  /** The plan's floor area ratio for this zone, from the rule data. */
+  readonly allowedFar: number;
+  /**
+   * This design's volume divided by its regime's envelope volume, 0 to 1. Usually well under 1:
+   * floor-area limits, not the envelope, are what bind.
+   */
+  readonly envelopeVolumeShare: number;
 }
 
 export interface Design {
@@ -346,6 +368,7 @@ export interface RegimeResult {
 
 export type ProblemCode =
   | 'too-few-points'
+  | 'invalid-coordinates'
   | 'self-intersecting'
   | 'zero-area'
   | 'too-small'
@@ -355,7 +378,11 @@ export type ProblemCode =
   | 'invalid-road-width'
   | 'outside-zone'
   | 'unsupported-zone'
-  | 'nothing-buildable';
+  | 'nothing-buildable'
+  /** Non-blocking: a regime has no height limit because its height rules are switched off. */
+  | 'height-limit-off'
+  /** Non-blocking: a regime has an envelope but fewer than two concept designs fit in it. */
+  | 'no-design';
 
 export interface Problem {
   readonly code: ProblemCode;

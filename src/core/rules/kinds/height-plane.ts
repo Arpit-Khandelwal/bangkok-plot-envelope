@@ -44,7 +44,7 @@ export const resolveHeightPlane: Resolver<HeightPlaneSpec> = (spec, input) => {
   const requirement = governing
     .map(
       (road) =>
-        `Building height at any point at most ${num(spec.slope)} times its distance to the far side of the ${m(road.rowWidthM)} road: ${m(spec.slope * road.rowWidthM)} at the plot edge (${edgeList(road.edgeIndices)}), rising ${m(spec.slope)} for every metre further back.`,
+        `Building height at any point at most ${num(spec.slope)} times its distance to the far side of the ${m(road.rowWidthM)} road: ${m(spec.slope * road.rowWidthM)} at the plot edge (${edgeList(input.site, road.edgeIndices)}), rising ${m(spec.slope)} for every metre further back.`,
     )
     .join(' ');
   return {

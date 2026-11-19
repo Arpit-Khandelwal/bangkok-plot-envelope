@@ -78,7 +78,7 @@ describe('road-edge setback per regime', () => {
     expect(rule.basis).toContain(
       'The road is 8 m wide, under 10 m, so the building line is 6 m from the road centreline: 2 m inside the plot edge.',
     );
-    expect(rule.requirement).toBe('Keep the building at least 2 m back from the 8 m road (edge 1).');
+    expect(rule.requirement).toBe('Keep the building at least 2 m back from the 8 m road (edge A).');
   });
 });
 

@@ -4,6 +4,7 @@
  * holes CW, and pieces or holes under SLIVER_AREA_M2 removed. Inputs are never mutated.
  * Overlapping polygons within one input region are treated as their union.
  */
+import { EndType, inflatePaths, JoinType } from 'clipper2-ts';
 import type { Path64, Paths64 } from 'clipper2-ts';
 import type { Polygon, Pt, Region, Ring } from '../types';
 import { capsule } from './capsule';
@@ -74,6 +75,24 @@ export function insetUniform(region: Region, distanceM: number): Region {
   if (!Number.isFinite(distanceM)) return [];
   const strip = booleanPaths('union', boundaryCapsules(region, distanceM), [], 0);
   return difference(region, strip);
+}
+
+/** Miter limit for `shrinkUniform`, as a multiple of the distance. */
+const SHRINK_MITER_LIMIT = 2;
+
+/**
+ * Fast uniform shrink for sizing floor plates: a clipper offset by -distanceM with mitred
+ * corners, clipped back to the region so the result is always inside it. Unlike `insetUniform`
+ * it rounds nothing and costs one offset instead of a union of one capsule per edge, so it suits
+ * repeated use in a search; it is not an exact Euclidean setback at reflex corners.
+ */
+export function shrinkUniform(region: Region, distanceM: number): Region {
+  if (!(distanceM > 0)) return union(region);
+  if (!Number.isFinite(distanceM)) return [];
+  const paths = regionToPaths(region);
+  const shrunk = inflatePaths(paths, -distanceM * CLIPPER_SCALE, JoinType.Miter, EndType.Polygon, SHRINK_MITER_LIMIT);
+  if (shrunk.length === 0) return [];
+  return booleanPaths('intersection', shrunk, paths, SLIVER_AREA_M2);
 }
 
 export interface Bounds {

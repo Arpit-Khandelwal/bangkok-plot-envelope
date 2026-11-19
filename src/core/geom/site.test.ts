@@ -136,7 +136,7 @@ describe('buildSite', () => {
     expect(codes(buildSite([ll(0, 0), ll(10, 0), ll(20, 0)], [N, N, N]))).toEqual(['zero-area']);
     expect(codes(buildSite([ll(0, 0), ll(5, 0), ll(5, 5), ll(0, 5)], [N, N, N, N]))).toEqual(['too-small']);
     expect(codes(buildSite([ll(0, 0), ll(700, 0), ll(700, 700), ll(0, 700)], [N, N, N, N]))).toEqual(['too-large']);
-    expect(codes(buildSite([ll(0, 0), [Number.NaN, 13], ll(0, 10)], [N, N, N]))).toEqual(['too-few-points']);
+    expect(codes(buildSite([ll(0, 0), [Number.NaN, 13], ll(0, 10)], [N, N, N]))).toEqual(['invalid-coordinates']);
   });
 
   it('mentions the area in too-small and too-large messages', () => {

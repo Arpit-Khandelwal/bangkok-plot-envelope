@@ -13,11 +13,10 @@ interface Figure {
   readonly aside?: string;
 }
 
-function figures(design: Design, regime: RegimeRules, plotAreaM2: number): Figure[] {
+function figures(design: Design, plotAreaM2: number): Figure[] {
   const totals = design.totals;
-  const allowedFar = plotAreaM2 > 0 ? regime.maxGfaM2 / plotAreaM2 : null;
   return [
-    { label: 'Floor area ratio', value: formatRatio(totals.far), aside: allowedFar === null ? undefined : `of ${formatRatio(allowedFar)} allowed here` },
+    { label: 'Floor area ratio', value: formatRatio(totals.far), aside: totals.allowedFar > 0 ? `of ${formatRatio(totals.allowedFar)} allowed by the plan` : undefined },
     { label: 'Storeys', value: formatNumber(totals.storeys) },
     { label: 'Roof deck', value: formatMetres(totals.roofDeckHeightM), aside: `top ${formatMetres(totals.topHeightM)}` },
     { label: 'Units', value: formatNumber(totals.units) },
@@ -42,7 +41,7 @@ export function DesignFigures({ design, regime, plotAreaM2 }: DesignFiguresProps
         <span className="headline__aside">Limit here: {formatM2(regime.maxGfaM2)}</span>
       </p>
       <dl className="figures">
-        {figures(design, regime, plotAreaM2).map((figure) => (
+        {figures(design, plotAreaM2).map((figure) => (
           <div key={figure.label} className="figures__item">
             <dt>{figure.label}</dt>
             <dd>

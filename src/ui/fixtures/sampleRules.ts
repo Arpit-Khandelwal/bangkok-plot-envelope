@@ -147,6 +147,7 @@ export function sampleRegimeRules(regime: RegimeId): RegimeRules {
       maxGfaM2: 10000,
       bindingGfaRuleId: 'mr33.highrise-threshold',
       maxMainUseM2: null,
+      bindingMainUseRuleId: null,
       rules: withBinding([...SHARED_RULES, ...LOW_RISE_RULES], 'mr33.highrise-threshold'),
     };
   }
@@ -160,6 +161,7 @@ export function sampleRegimeRules(regime: RegimeId): RegimeRules {
     maxGfaM2: 12500,
     bindingGfaRuleId: 'plan.far',
     maxMainUseM2: null,
+    bindingMainUseRuleId: null,
     rules: withBinding([...SHARED_RULES, ...HIGH_RISE_RULES], 'plan.far'),
   };
 }

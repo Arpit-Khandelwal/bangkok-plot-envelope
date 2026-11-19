@@ -69,7 +69,7 @@ export function buildSite(plot: readonly LngLat[], edges: readonly EdgeSpec[]): 
   if (plot.length < 3) return { ok: false, problems: [problem('too-few-points')] };
   if (edges.length !== plot.length) return { ok: false, problems: [problem('edges-mismatch')] };
   if (!plot.every((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[1]) < 90)) {
-    return { ok: false, problems: [problem('too-few-points', 'bad-coordinates')] };
+    return { ok: false, problems: [problem('invalid-coordinates', 'bad-coordinates')] };
   }
 
   const frame = makeFrame(plot);
@@ -81,7 +81,7 @@ export function buildSite(plot: readonly LngLat[], edges: readonly EdgeSpec[]): 
   const kept = dedupeIndices(local, DUPLICATE_POINT_M);
   if (kept.length < 3) return { ok: false, problems: [problem('too-few-points')] };
   let ring: Pt[] = kept.map((i) => local[i] as Pt);
-  let specs: EdgeSpec[] = kept.map((start, j) => {
+  let sources: number[] = kept.map((start, j) => {
     const end = kept[j + 1] ?? (kept[0] as number) + plot.length;
     // Original edges start .. end-1 now form one side; all but one are (near) zero
     // length, so the side keeps the spec of the longest of them.
@@ -96,7 +96,7 @@ export function buildSite(plot: readonly LngLat[], edges: readonly EdgeSpec[]): 
         best = e % plot.length;
       }
     }
-    return edges[best] as EdgeSpec;
+    return best;
   });
 
   // Collinear first (such outlines also fold back on themselves), then crossing, then
@@ -110,9 +110,9 @@ export function buildSite(plot: readonly LngLat[], edges: readonly EdgeSpec[]): 
     // edge j (old corner n-j to old corner n-j-1) is old edge n-1-j traversed backwards.
     const n = ring.length;
     const oldRing = ring;
-    const oldSpecs = specs;
+    const oldSources = sources;
     ring = oldRing.map((_, j) => oldRing[(n - j) % n] as Pt);
-    specs = oldSpecs.map((_, j) => oldSpecs[n - 1 - j] as EdgeSpec);
+    sources = oldSources.map((_, j) => oldSources[n - 1 - j] as number);
     area = -area;
   }
   if (area < MIN_PLOT_AREA_M2) return { ok: false, problems: [problem('too-small', 'too-small', area)] };
@@ -121,7 +121,8 @@ export function buildSite(plot: readonly LngLat[], edges: readonly EdgeSpec[]): 
   const n = ring.length;
   const edgeInfos: EdgeInfo[] = ring.map((from, i) => {
     const to = ring[(i + 1) % n] as Pt;
-    return { index: i, spec: specs[i] as EdgeSpec, lengthM: Math.hypot(to.x - from.x, to.y - from.y), from, to };
+    const sourceIndex = sources[i] as number;
+    return { index: i, sourceIndex, spec: edges[sourceIndex] as EdgeSpec, lengthM: Math.hypot(to.x - from.x, to.y - from.y), from, to };
   });
   return { ok: true, site: { frame, ring, areaM2: area, perimeterM: perimeter(ring), edges: edgeInfos } };
 }

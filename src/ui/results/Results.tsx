@@ -1,3 +1,4 @@
+import { siteEdgeLetter } from '../../core/edgeNames';
 import type { Design } from '../../core/types';
 import type { OkEvaluation } from '../model/buildModel';
 import { Problems } from '../panel/Problems';
@@ -37,7 +38,7 @@ export function Results({ evaluation, design }: ResultsProps) {
         <DesignFigures design={design} regime={regime} plotAreaM2={evaluation.site.areaM2} />
         {design.section ? (
           <figure className="panel-section section-figure">
-            <SectionDrawing profile={design.section} />
+            <SectionDrawing profile={design.section} roadEdgeLetter={siteEdgeLetter(evaluation.site, design.section.roadEdgeIndex)} />
             <figcaption className="section-figure__caption">
               Section at right angles to the road, drawn to scale. The blue line is the height limit; the building must stay below it.
             </figcaption>

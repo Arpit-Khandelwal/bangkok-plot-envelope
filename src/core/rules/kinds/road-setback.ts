@@ -80,7 +80,7 @@ export const resolveRoadSetback: Resolver<RoadSetbackSpec> = (spec, input) => {
     return [
       {
         demands,
-        requirement: `Keep the building at least ${m(result.distanceM)} back from the ${m(road.rowWidthM)} road (${edgeList(road.edgeIndices)}).`,
+        requirement: `Keep the building at least ${m(result.distanceM)} back from the ${m(road.rowWidthM)} road (${edgeList(input.site, road.edgeIndices)}).`,
         basis: explain(road.rowWidthM, result),
       },
     ];

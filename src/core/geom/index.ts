@@ -23,6 +23,7 @@ export {
   pointInRegion,
   regionArea,
   regionBounds,
+  shrinkUniform,
   union,
   unionAll,
 } from './region';

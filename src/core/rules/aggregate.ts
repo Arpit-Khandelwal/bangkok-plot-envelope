@@ -32,10 +32,7 @@ export const CATEGORY_ORDER: readonly RuleCategory[] = [
 ];
 
 /** Used when no rule supplies a parking rate: no spaces are required. */
-export const NO_PARKING: ParkingRule = { m2PerStall: Number.POSITIVE_INFINITY, stallsPerLargeUnit: 0, ruleId: '' };
-
-/** Sentinel rule id when nothing sets a value, e.g. every floor-area limit switched off. */
-export const NO_RULE = '';
+export const NO_PARKING: ParkingRule = { m2PerStall: Number.POSITIVE_INFINITY, stallsPerLargeUnit: 0, ruleId: null };
 
 interface Pick {
   readonly value: number;
@@ -57,7 +54,7 @@ export function strictestLimit(limits: readonly GfaLimit[]): Pick | null {
 
 function strictestSetbacks(site: Site, enabled: readonly ResolvedRule[]): readonly EdgeSetback[] {
   return site.edges.map((edge) => {
-    let best: EdgeSetback = { edgeIndex: edge.index, distanceM: 0, ruleId: NO_RULE };
+    let best: EdgeSetback = { edgeIndex: edge.index, distanceM: 0, ruleId: null };
     for (const rule of enabled) {
       for (const d of rule.resolution.effects.setbacks ?? []) {
         if (d.edgeIndex === edge.index && d.distanceM > best.distanceM) {
@@ -133,7 +130,7 @@ export function aggregate(
   const binding = new Set<string>([
     ...(total === null ? [] : [total.ruleId]),
     ...(mainUse !== null && mainUse.value < maxGfaM2 ? [mainUse.ruleId] : []),
-    ...setbacks.filter((s) => s.distanceM > 0).map((s) => s.ruleId),
+    ...setbacks.flatMap((s) => (s.distanceM > 0 && s.ruleId !== null ? [s.ruleId] : [])),
     ...bindingHeightIds(site, heightPlanes, setbacks, cap, parapetM),
   ]);
 
@@ -148,7 +145,8 @@ export function aggregate(
     roofDeckCapRuleId: cap?.ruleId ?? null,
     gfaLimits,
     maxGfaM2,
-    bindingGfaRuleId: total?.ruleId ?? NO_RULE,
+    bindingGfaRuleId: total?.ruleId ?? null,
+    bindingMainUseRuleId: mainUse?.ruleId ?? null,
     maxMainUseM2: mainUse?.value ?? null,
     openSpace: effects.flatMap((e) => (e.openSpace === undefined ? [] : [e.openSpace])),
     parking: effects.find((e) => e.parking !== undefined)?.parking ?? NO_PARKING,

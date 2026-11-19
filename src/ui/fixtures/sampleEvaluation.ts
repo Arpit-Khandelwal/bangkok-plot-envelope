@@ -19,6 +19,7 @@ const RING = [
 
 const EDGES: EdgeInfo[] = RING.map((from, index) => ({
   index,
+  sourceIndex: index,
   spec: index === 0 ? { kind: 'road', roadId: 'road-1', rowWidthM: 12 } : { kind: 'neighbour' },
   lengthM: 50,
   from,
@@ -83,6 +84,8 @@ const LOW_RISE: Design = {
     units: 135,
     parkingRequired: 79,
     parkingProvided: 96,
+    allowedFar: 5,
+    envelopeVolumeShare: 0.58,
   },
   checks: LOW_CHECKS,
   passes: true,
@@ -136,6 +139,8 @@ const TOWER: Design = {
     units: 162,
     parkingRequired: 103,
     parkingProvided: 150,
+    allowedFar: 5,
+    envelopeVolumeShare: 0.55,
   },
   checks: TOWER_CHECKS,
   passes: false,

@@ -10,6 +10,7 @@ import {
   minDistanceToSegment,
   pointInRegion,
   regionArea,
+  shrinkUniform,
   union,
   unionAll,
 } from './region';
@@ -103,6 +104,20 @@ describe('capsule', () => {
     expect(capsule(P(0, 0), P(1, 0), -1)).toEqual([]);
     expect(capsule(P(0, 0), P(1, 0), Number.NaN)).toEqual([]);
     expect(arcSegments(6, 0.02)).toBeGreaterThan(10);
+  });
+});
+
+describe('shrinkUniform', () => {
+  it('shrinks a rectangle by the distance on every side', () => {
+    expect(regionArea(shrinkUniform([rect(0, 0, 10, 6)], 1))).toBeCloseTo(8 * 4, 6);
+  });
+
+  it('stays inside a concave region and leaves nothing when shrunk too far', () => {
+    const r = shrinkUniform(L, 0.2);
+    expect(regionArea(difference(r, L))).toBe(0);
+    // Mitred: 3.6 x 0.6 + 0.6 x 2.0, with a square (not round) reflex corner.
+    expect(regionArea(r)).toBeCloseTo(3.36, 6);
+    expect(shrinkUniform(L, 5)).toEqual([]);
   });
 });
 

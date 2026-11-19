@@ -32,7 +32,7 @@ describe('disabling floor-area rules', () => {
     const disabledRuleIds = ['plan.far', 'plan.use-size', 'mr33.far-10', 'mr33.access-road', 'mr33.highrise-threshold'];
     const result = resolve(site, { ...STATION_FAR, disabledRuleIds });
     expect(result.highRise.maxGfaM2).toBe(Number.POSITIVE_INFINITY);
-    expect(result.highRise.bindingGfaRuleId).toBe('');
+    expect(result.highRise.bindingGfaRuleId).toBeNull();
     expect(result.lowRise.maxGfaM2).toBe(Number.POSITIVE_INFINITY);
     expect(result.lowRise.roofDeckCapM).toBeNull();
     expect(result.lowRise.roofDeckCapRuleId).toBeNull();

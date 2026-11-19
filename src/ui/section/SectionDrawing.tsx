@@ -1,6 +1,5 @@
 import { useId } from 'react';
 import type { SectionProfile } from '../../core/types';
-import { edgeLetter } from '../../map/edgeLabels';
 import { formatMetres, formatNumber } from '../format';
 import { Dimension } from './Dimension';
 import { clampLabelX, estimateTextWidth, layoutSection, SECTION_MARGIN_X } from './sectionGeometry';
@@ -13,13 +12,15 @@ const ROAD_BAND = 5;
 
 export interface SectionDrawingProps {
   readonly profile: SectionProfile;
+  /** The road edge's letter as drawn (from its `sourceIndex`), e.g. "A". */
+  readonly roadEdgeLetter: string;
 }
 
-function describe(profile: SectionProfile): string {
+function describe(profile: SectionProfile, roadEdgeLetter: string): string {
   const nearest = profile.floors.reduce((near, floor) => Math.min(near, floor.nearM), Number.POSITIVE_INFINITY);
   const top = profile.floors.reduce((height, floor) => Math.max(height, floor.topM), 0);
   const parts = [
-    `Cut at right angles to edge ${edgeLetter(profile.roadEdgeIndex)}.`,
+    `Cut at right angles to edge ${roadEdgeLetter}.`,
     `The road is ${formatMetres(profile.rowWidthM)} wide and the required setback is ${formatMetres(profile.setbackM)}.`,
     profile.floors.length > 0
       ? `The building has ${profile.floors.length} floors, its front face ${formatMetres(nearest)} from the plot edge and its roof at ${formatMetres(top)}.`
@@ -31,7 +32,7 @@ function describe(profile: SectionProfile): string {
 }
 
 /** A to-scale vertical cut from the far side of the road through the building. */
-export function SectionDrawing({ profile }: SectionDrawingProps) {
+export function SectionDrawing({ profile, roadEdgeLetter }: SectionDrawingProps) {
   const titleId = useId();
   const descId = useId();
   const layout = layoutSection(profile);
@@ -56,7 +57,7 @@ export function SectionDrawing({ profile }: SectionDrawingProps) {
       aria-describedby={descId}
     >
       <title id={titleId}>Section through the plot and the road</title>
-      <desc id={descId}>{describe(profile)}</desc>
+      <desc id={descId}>{describe(profile, roadEdgeLetter)}</desc>
 
       <rect className="section__road" x={toX(-profile.rowWidthM)} y={groundY} width={profile.rowWidthM * layout.scale} height={ROAD_BAND} />
       <line className="section__ground" x1={toX(layout.xMinM)} y1={groundY} x2={toX(layout.xMaxM)} y2={groundY} />
