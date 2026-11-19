@@ -1,0 +1,71 @@
+/* Checklist rows and citations. */
+
+/* ---------- Checklist ---------- */
+.checklist {
+  display: grid;
+  padding: 0;
+  list-style: none;
+  border-top: var(--hairline);
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: var(--hairline);
+}
+
+.check--fail {
+  margin: 0 calc(-1 * var(--space-2));
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  background: var(--fail-tint);
+}
+
+.check__title {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.check__values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.check__values dt {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 420px) {
+  .check {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+/* ---------- Citations ---------- */
+.citations {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-2);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.citations__link {
+  color: var(--ink-soft);
+}
+
+.citations__link .thai {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}

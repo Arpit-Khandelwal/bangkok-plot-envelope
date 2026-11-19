@@ -1,0 +1,224 @@
+/* The map stage, the site bar and legend over it, edge markers, and MapLibre's controls. */
+
+.map-root {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- Site bar ---------- */
+.site-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper);
+  border-bottom: var(--hairline);
+  min-width: 0;
+}
+
+.site-bar__title {
+  flex-basis: 100%;
+  font-size: var(--text-md);
+}
+
+.site-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (min-width: 900px) {
+  .site-bar {
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+  }
+}
+
+/* ---------- Zone chip ---------- */
+.zone-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--zone-orange);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.zone-chip__code {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  background: var(--zone-orange);
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.zone-chip__text {
+  display: grid;
+  padding: var(--space-1) var(--space-3);
+  min-width: 0;
+}
+
+.zone-chip__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.zone-chip__plan {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.zone-chip--outside {
+  border-color: var(--ink-soft);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+}
+
+.zone-chip--outside .zone-chip__code {
+  padding: 0;
+  background: none;
+  font-size: var(--text-sm);
+}
+
+.zone-chip--outside .zone-chip__name {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* ---------- Presets menu ---------- */
+.presets {
+  position: relative;
+}
+
+.presets__summary {
+  list-style: none;
+}
+
+.presets__summary::-webkit-details-marker {
+  display: none;
+}
+
+.presets[open] .presets__summary {
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+
+.presets__list {
+  display: grid;
+  margin-top: var(--space-1);
+  padding: 0;
+  list-style: none;
+  width: min(320px, 100%);
+  min-width: 240px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  animation: reveal var(--duration) var(--ease);
+}
+
+.presets__option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-bottom: var(--hairline);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.presets__option:hover {
+  background: var(--paper);
+}
+
+.presets__label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.presets__description {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+/* ---------- Legend ---------- */
+.legend {
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper);
+  border-bottom: var(--hairline);
+  font-size: var(--text-xs);
+}
+
+.legend__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend__swatch {
+  flex-shrink: 0;
+  width: 18px;
+  height: 12px;
+  border: 1px solid var(--ink);
+}
+
+.legend__swatch--glass {
+  border-color: var(--glass);
+  background: color-mix(in srgb, var(--glass) 25%, transparent);
+}
+
+.legend__swatch--ghost {
+  border-color: color-mix(in srgb, var(--glass) 45%, transparent);
+  background: none;
+}
+
+.legend__swatch--solid {
+  background: var(--use-residential);
+  box-shadow: inset 0 -4px 0 var(--use-parking);
+}
+
+.legend__swatch--context {
+  border-color: var(--rule);
+  /* Half solid, half lighter: measured and estimated heights. */
+  background: #eceeec;
+  box-shadow: inset 9px 0 0 #d6dad7;
+}
+
+.legend__swatch--zone {
+  height: 0;
+  border: 0;
+  border-top: 2px dashed var(--zone-orange);
+}
+
+@media (min-width: 900px) {
+  .legend {
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1279px) {
+  .legend__list {
+    flex-direction: column;
+  }
+}

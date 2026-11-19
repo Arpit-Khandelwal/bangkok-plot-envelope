@@ -1,38 +1,200 @@
-:root {
-  --color-surface: oklch(97% 0.008 85);
-  --color-ink: oklch(22% 0.02 60);
-  font-family: system-ui, sans-serif;
-}
+@import './tokens.css';
+@import './controls.css';
+@import './panel.css';
+@import './edges.css';
+@import './results.css';
+@import './checklist.css';
+@import './schedule.css';
+@import './section.css';
+@import './map.css';
+@import './markers.css';
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--color-surface);
-  color: var(--color-ink);
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
 }
 
-.map-root {
-  position: absolute;
-  inset: 0;
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--leading-tight);
 }
 
-.spike-readout {
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration-color: var(--ink-soft);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius);
+}
+
+.thai {
+  font-family: var(--font-thai);
+}
+
+.num,
+.figure {
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-  max-width: 320px;
-  padding: 10px 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-ink);
-  font-size: 13px;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Layout ----------
+ * Mobile first: site bar, map, legend and panel in normal document flow.
+ * From 900px: a two-column grid. The site bar and legend share the map's cell, placed by
+ * alignment, not absolute positioning: stacked top-left up to 1280px, then the legend
+ * moves to the bottom centre where the map is wide enough to clear its controls.
+ */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.map-overlay {
+  display: contents;
+}
+
+.site-bar {
+  order: 0;
+}
+
+.stage {
+  order: 1;
+  position: relative;
+  height: max(300px, 50vh);
+  min-width: 0;
+  background: var(--paper);
+}
+
+.legend {
+  order: 2;
+}
+
+.panel {
+  order: 3;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  body {
+    overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--panel-width);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .stage {
+    grid-column: 1;
+    grid-row: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .map-overlay {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    justify-self: start;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: var(--space-4);
+    max-width: min(400px, calc(100% - 2 * var(--space-4)));
+    pointer-events: none;
+  }
+
+  .map-overlay > * {
+    pointer-events: auto;
+  }
+
+  .panel {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: var(--panel-shadow);
+    z-index: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .map-overlay {
+    display: contents;
+  }
+
+  .site-bar {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    justify-self: start;
+    z-index: 2;
+    margin: var(--space-4);
+    max-width: 400px;
+  }
+
+  .legend {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: end;
+    justify-self: center;
+    z-index: 2;
+    margin-bottom: var(--space-4);
+    max-width: 540px;
+  }
 }

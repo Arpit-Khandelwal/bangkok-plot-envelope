@@ -1,0 +1,80 @@
+/* Design tokens. Colour is used for meaning only. */
+:root {
+  /* Surfaces and ink */
+  --paper: #eef1ef;
+  --paper-raised: #f8faf9;
+  --ink: #12303a;
+  --ink-soft: #4d6670;
+  --rule: #c9d2cf;
+
+  /* Meaning */
+  --zone-orange: #e8862e;
+  --glass: #2f7dd1;
+  --pass: #1f7a4d;
+  --fail: #c0362c;
+  --warn: #a86a00;
+  --road: #5b6b73;
+  --canal: #2b8a9e;
+
+  /* Floor uses, matching the 3D model */
+  --use-residential: #fbfbf8;
+  --use-office: #dfe9f2;
+  --use-parking: #a9b4b6;
+  --use-mixed: #ece9df;
+
+  /* Tints derived from the meaning colours, for backgrounds behind ink text */
+  --fail-tint: color-mix(in srgb, var(--fail) 9%, var(--paper-raised));
+  --warn-tint: color-mix(in srgb, var(--warn) 11%, var(--paper-raised));
+  --glass-tint: color-mix(in srgb, var(--glass) 10%, var(--paper-raised));
+  --zone-tint: color-mix(in srgb, var(--zone-orange) 16%, var(--paper-raised));
+
+  /* Type */
+  --font-display: 'Bricolage Grotesque', 'Anuphan', system-ui, sans-serif;
+  --font-body: 'Anuphan', system-ui, sans-serif;
+  --font-thai: 'Sarabun', 'Anuphan', system-ui, sans-serif;
+
+  /* Modular scale, ratio about 1.2 from a 15px body */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.5rem;
+  --leading-tight: 1.15;
+  --leading-body: 1.5;
+
+  /* Spacing: one scale, 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Shape */
+  --radius: 3px;
+  --hairline: 1px solid var(--rule);
+  --control-height: 36px;
+  --panel-width: 440px;
+  --panel-shadow: -8px 0 24px rgb(18 48 58 / 0.1);
+
+  /* Motion: only in response to the user */
+  --duration: 180ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --focus-ring: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--glass);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --control-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 0ms;
+  }
+}

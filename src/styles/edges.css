@@ -1,0 +1,184 @@
+/* Edge list, assumptions disclosure and sources. */
+
+/* ---------- Edge list ---------- */
+.edge-list {
+  display: grid;
+  padding: 0;
+  list-style: none;
+  border-top: var(--hairline);
+}
+
+.edge-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-2);
+  border-bottom: var(--hairline);
+  border-left: 3px solid transparent;
+  scroll-margin: var(--space-6);
+  transition: background-color var(--duration) var(--ease);
+}
+
+.edge-row--selected {
+  border-left-color: var(--ink);
+  background: var(--paper-raised);
+}
+
+.edge-row__select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  min-width: 96px;
+  padding: 0 var(--space-2) 0 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.edge-row__letter {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.edge-row__letter--road {
+  border-color: var(--road);
+  background: var(--road);
+  color: var(--paper-raised);
+}
+
+.edge-row__letter--waterway {
+  border-color: var(--canal);
+  background: color-mix(in srgb, var(--canal) 70%, var(--ink));
+  color: var(--paper-raised);
+}
+
+.edge-row--selected .edge-row__letter {
+  box-shadow: 0 0 0 2px var(--paper-raised), 0 0 0 3.5px var(--ink);
+}
+
+.edge-row__length {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+
+.edge-row__kind {
+  justify-self: end;
+}
+
+.edge-row__details {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-1) 0 var(--space-2) calc(28px + var(--space-2));
+}
+
+@media (max-width: 400px) {
+  .edge-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .edge-row__kind {
+    justify-self: stretch;
+  }
+
+  .edge-row__kind .segmented__options {
+    display: grid;
+    width: 100%;
+  }
+
+  .edge-row__details {
+    padding-left: 0;
+  }
+}
+
+/* ---------- Disclosure (assumptions) ---------- */
+.disclosure__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure__summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  transform: rotate(-45deg);
+  transition: transform var(--duration) var(--ease);
+}
+
+.disclosure[open] > .disclosure__summary::before {
+  transform: rotate(45deg);
+}
+
+.disclosure__summary .panel-section__title {
+  margin: 0;
+}
+
+.disclosure__body {
+  padding-top: var(--space-3);
+}
+
+.disclosure[open] .disclosure__body {
+  animation: reveal var(--duration) var(--ease);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ---------- Sources ---------- */
+.sources {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.sources__title {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.sources__list {
+  padding-left: var(--space-4);
+}
+
+.sources a {
+  color: var(--ink-soft);
+}
+
+.sources__caveat {
+  color: var(--ink);
+  font-weight: 500;
+}
