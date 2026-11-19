@@ -211,15 +211,15 @@
 
 @media (min-width: 900px) {
   .legend {
+    padding: var(--space-2) var(--space-3);
     background: color-mix(in srgb, var(--paper) 94%, transparent);
     border: 1px solid var(--rule);
     border-radius: var(--radius);
   }
-}
 
-@media (min-width: 900px) and (max-width: 1279px) {
   .legend__list {
     flex-direction: column;
+    gap: var(--space-1);
   }
 }
 
@@ -232,22 +232,148 @@
   isolation: isolate;
 }
 
-@media (min-width: 900px) {
-  .app .map-overlay,
-  .app .site-bar {
-    z-index: 4;
-  }
-}
-
-/* ---------- Legend at the bottom centre (from 1280px) ----------
- * Overrides the placement in global.css. The bottom margin clears the attribution line
- * (10px margin + 24px compact button) with a gap; the side clearance keeps it off the zoom
- * and scale controls, which sit side by side at the bottom left (about 150px wide).
+/* ---------- Phone (under 900px) ----------
+ * The site bar is one compact row above the map, at most 56px when closed. The zone chip shows
+ * the code only; the examples menu and Start over live in the "More" disclosure.
  */
-@media (min-width: 1280px) {
-  .app .legend {
-    margin-bottom: 48px;
-    max-width: min(540px, calc(100% - 2 * 160px));
+@media (max-width: 899.98px) {
+  .site-bar {
+    position: relative;
+    z-index: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-2);
+    height: 56px;
+    padding: 6px var(--space-3);
+  }
+
+  /* Raised only while "More" is open, so its menu drops over the map. */
+  .site-bar:has(details[open]) {
+    z-index: 20;
+  }
+
+  .site-bar__title,
+  .site-bar .segmented__legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .site-bar .segmented {
+    flex: 0 0 auto;
+  }
+
+  .site-bar .segmented__label {
+    padding: 0 var(--space-2);
+  }
+
+  .zone-chip {
+    flex: 0 1 auto;
+    min-height: var(--control-height);
+    overflow: hidden;
+  }
+
+  .zone-chip__text,
+  .zone-chip--outside .zone-chip__name {
+    display: none;
+  }
+
+  .zone-chip__code {
+    padding: 0 var(--space-2);
+    font-size: var(--text-md);
+  }
+
+  .zone-chip--outside {
+    padding: 0 var(--space-2);
+  }
+
+  .zone-chip--outside .zone-chip__code {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-sm);
+    line-height: var(--control-height);
+  }
+
+  .site-bar__more {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .site-bar__more-summary {
+    list-style: none;
+  }
+
+  .site-bar__more-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .site-bar__more[open] .site-bar__more-summary {
+    background: var(--ink);
+    color: var(--paper-raised);
+  }
+
+  .site-bar__more-body {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 60dvh;
+    overflow-y: auto;
+    padding: var(--space-3);
+    background: var(--paper);
+    border-bottom: 1px solid var(--ink);
+    box-shadow: 0 8px 16px rgb(18 48 58 / 0.18);
+  }
+
+  .site-bar__actions {
+    align-items: flex-start;
+  }
+
+  /* Legend: a closed disclosure under the map. */
+  .legend {
+    position: relative;
+    z-index: 0;
+    padding: 0;
+  }
+
+  .legend__summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-height);
+    padding: 0 var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .legend .legend__list {
+    padding: var(--space-2) var(--space-4) var(--space-3);
+  }
+
+  /* MapLibre's attribution is a licence requirement: keep it, but compact at the bottom right,
+   * never wider than the space right of the zoom and scale controls (about 170px). */
+  .maplibregl-ctrl-bottom-right {
+    max-width: calc(100% - 170px);
+  }
+
+  .maplibregl-ctrl-bottom-left {
+    max-width: 170px;
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact-show {
+    max-width: 100%;
+  }
+
+  .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 

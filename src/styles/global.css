@@ -86,15 +86,21 @@ a:hover {
 }
 
 /* ---------- Layout ----------
- * Mobile first: site bar, map, legend and panel in normal document flow.
- * From 900px: a two-column grid. The site bar and legend share the map's cell, placed by
- * alignment, not absolute positioning: stacked top-left up to 1280px, then the legend
- * moves to the bottom centre where the map is wide enough to clear its controls.
+ * Phone (under 900px): one column and the document scrolls. The map is sticky at the top, so
+ * the results scroll underneath it and the 3D model stays in view. Order: site bar, map,
+ * legend (a closed disclosure), panel.
+ * Desktop (from 900px): the page never scrolls. html, body and the app root are exactly one
+ * viewport tall and clipped; a two-column grid puts the map on the left, with the site bar and
+ * legend over it in the same cell, and the panel on the right, which is the only thing that scrolls.
+ * `overflow: clip` (unlike `hidden`) cannot be scrolled programmatically either, so a stray
+ * scrollIntoView can never move the page.
  */
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
 }
 
 .map-overlay {
@@ -107,8 +113,11 @@ a:hover {
 
 .stage {
   order: 1;
-  position: relative;
-  height: max(300px, 50vh);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: clamp(260px, 42vh, 420px);
+  height: clamp(260px, 42dvh, 420px);
   min-width: 0;
   background: var(--paper);
 }
@@ -119,82 +128,77 @@ a:hover {
 
 .panel {
   order: 3;
+  position: relative;
+  z-index: 0;
   min-width: 0;
 }
 
 @media (min-width: 900px) {
-  body {
+  html,
+  body,
+  #root {
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
+  }
+
+  #root {
+    overflow: clip;
   }
 
   .app {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--panel-width);
     grid-template-rows: minmax(0, 1fr);
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     min-height: 0;
+    overflow: clip;
   }
 
   .stage {
     grid-column: 1;
     grid-row: 1;
+    position: relative;
+    top: auto;
+    z-index: auto;
     height: auto;
     min-height: 0;
+    overflow: clip;
   }
 
-  .map-overlay {
+  .site-bar,
+  .legend {
     grid-column: 1;
     grid-row: 1;
-    align-self: start;
-    justify-self: start;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-    margin: var(--space-4);
-    max-width: min(400px, calc(100% - 2 * var(--space-4)));
-    pointer-events: none;
+    z-index: 4;
   }
 
-  .map-overlay > * {
-    pointer-events: auto;
+  .site-bar {
+    align-self: start;
+    justify-self: start;
+    margin: var(--space-4);
+    max-width: 400px;
+  }
+
+  /* Bottom of the map, on the right: clear of the zoom and scale controls (bottom left, about
+   * 150px) and above the attribution button (10px margin + 24px). */
+  .legend {
+    align-self: end;
+    justify-self: end;
+    margin: 0 var(--space-4) 48px 0;
+    max-width: min(340px, calc(100% - 180px - var(--space-4)));
+    max-height: 45%;
+    overflow-y: auto;
   }
 
   .panel {
     grid-column: 2;
     grid-row: 1;
     min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
     box-shadow: var(--panel-shadow);
-    z-index: 3;
-  }
-}
-
-@media (min-width: 1280px) {
-  .map-overlay {
-    display: contents;
-  }
-
-  .site-bar {
-    grid-column: 1;
-    grid-row: 1;
-    align-self: start;
-    justify-self: start;
-    z-index: 2;
-    margin: var(--space-4);
-    max-width: 400px;
-  }
-
-  .legend {
-    grid-column: 1;
-    grid-row: 1;
-    align-self: end;
-    justify-self: center;
-    z-index: 2;
-    margin-bottom: var(--space-4);
-    max-width: 540px;
+    z-index: 5;
   }
 }
