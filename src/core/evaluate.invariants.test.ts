@@ -1,11 +1,15 @@
-/** Properties every evaluation must have, over a fixed family of 30 plots. */
+/** Properties every evaluation must have, over a fixed family of 30 plots and the eight example plots. */
 import { describe, expect, it } from 'vitest';
 import { evaluate } from './evaluate';
-import { difference, regionArea } from './geom';
+import { minWidthFor } from './designs/habitable';
+import { difference, openRegion, regionArea } from './geom';
+import { presetPlots } from './pipeline/preset-plots';
 import { testPlots } from './pipeline/test-plots';
 import type { Evaluation } from './types';
 
 const OUTSIDE_TOLERANCE_M2 = 0.05;
+/** Opening a habitable floor outline again may remove at most this much (grid rounding). */
+const NARROW_TOLERANCE_M2 = 0.5;
 const SUM_TOLERANCE = 1e-6;
 
 /** Every number reachable from the value, typed arrays included. */
@@ -21,13 +25,13 @@ function nonFiniteNumbers(value: unknown, path = '$'): string[] {
   return [];
 }
 
-const PLOTS = testPlots();
+const PLOTS = [...testPlots(), ...presetPlots().map((p) => ({ name: `preset ${p.id}`, scenario: p.scenario }))];
 const RESULTS: ReadonlyArray<{ readonly name: string; readonly result: Evaluation }> = PLOTS.map((p) => ({
   name: p.name,
   result: evaluate(p.scenario),
 }));
 
-describe('invariants over 30 plots', () => {
+describe('invariants over 30 plots and the example plots', () => {
   it('has at least 30 plots', () => {
     expect(PLOTS.length).toBeGreaterThanOrEqual(30);
   });
@@ -70,9 +74,24 @@ describe('invariants over 30 plots', () => {
     const hasEnvelope = result.regimes.lowRise.envelope !== null || result.regimes.highRise.envelope !== null;
     if (!hasEnvelope) return;
     if (result.designs.length >= 2) return;
-    // Only a plot too small to park one car on its plate may fall short, and it must say so.
-    expect(name).toContain('150 m²');
-    expect(result.problems.map((p) => p.code)).toContain('no-design');
+    // Only a plot too small to park one car on its plate, or too narrow for a usable floor, may
+    // fall short, and it must say so.
+    const problem = result.problems.find((p) => p.code === 'no-design');
+    expect(problem).toBeDefined();
+    if (name.includes('150 m²')) return;
+    expect(result.designs).toEqual([]);
+    expect(problem?.message).toMatch(/^The buildable part of this plot is only about [\d.]+ m wide after setbacks, too narrow for a usable floor/);
+    expect(problem?.blocking).toBe(false);
+  });
+
+  it.each(RESULTS)('$name: no floor outline has a part narrower than a usable floor', ({ result }) => {
+    if (!result.ok) return;
+    for (const d of result.designs) {
+      for (const f of d.floors) {
+        const lost = regionArea(f.outline) - regionArea(openRegion(f.outline, minWidthFor(f.use)));
+        expect(lost, `${d.id} level ${f.level} ${f.use}`).toBeLessThan(NARROW_TOLERANCE_M2);
+      }
+    }
   });
 
   it.each(RESULTS)('$name: parking provides the required stalls and at most one more', ({ result }) => {

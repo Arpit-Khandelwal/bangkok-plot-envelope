@@ -4,6 +4,7 @@ import type { CheckInput } from '../checks';
 import type { Design, RegimeId } from '../types';
 import type { DesignContext } from './context';
 import type { Generated } from './generate';
+import { narrowNote } from './habitable';
 import { buildMassing } from './massing';
 import { buildSection } from './section';
 import { computeTotals } from './totals';
@@ -39,5 +40,5 @@ export function assembleDesign(
     massing: buildMassing(floors),
     section: buildSection(ctx.site, ctx.regime, floors),
   };
-  return { ...draft, summary: spec.summarise(draft) };
+  return { ...draft, summary: `${spec.summarise(draft)}${narrowNote(ctx.narrow)}` };
 }

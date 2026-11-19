@@ -10,7 +10,7 @@ import type { Polygon, Pt, Region, Ring } from '../types';
 import { capsule } from './capsule';
 import { booleanPaths, regionToPaths } from './clipper-io';
 import type { BoolOp } from './clipper-io';
-import { pointInRing, segmentDistance, signedArea } from './ring';
+import { perimeter, pointInRing, segmentDistance, signedArea } from './ring';
 import { ARC_TOLERANCE_M, CLIPPER_SCALE, SLIVER_AREA_M2 } from './tolerance';
 
 /** Extra room around the region when building a half-plane clip polygon. */
@@ -82,14 +82,14 @@ export function insetUniform(region: Region, distanceM: number): Region {
  * miter limit of 2). Mitred and squared corners lie outside the true round offset, so the result
  * contains every point within `distanceM` of the region and may overshoot only at corners.
  */
-export function growUniform(region: Region, distanceM: number): Region {
+export function growUniform(region: Region, distanceM: number, miterLimit: number = GROW_MITER_LIMIT): Region {
   if (!(distanceM > 0)) return union(region);
   if (!Number.isFinite(distanceM)) return [];
-  const grown = inflatePaths(regionToPaths(region), distanceM * CLIPPER_SCALE, JoinType.Miter, EndType.Polygon, GROW_MITER_LIMIT);
+  const grown = inflatePaths(regionToPaths(region), distanceM * CLIPPER_SCALE, JoinType.Miter, EndType.Polygon, miterLimit);
   return booleanPaths('union', grown, [], SLIVER_AREA_M2);
 }
 
-/** Miter limit for `growUniform`, as a multiple of the distance. */
+/** Default miter limit for `growUniform`, as a multiple of the distance. */
 const GROW_MITER_LIMIT = 2;
 
 /** Miter limit for `shrinkUniform`, as a multiple of the distance. */
@@ -108,6 +108,127 @@ export function shrinkUniform(region: Region, distanceM: number): Region {
   const shrunk = inflatePaths(paths, -distanceM * CLIPPER_SCALE, JoinType.Miter, EndType.Polygon, SHRINK_MITER_LIMIT);
   if (shrunk.length === 0) return [];
   return booleanPaths('intersection', shrunk, paths, SLIVER_AREA_M2);
+}
+
+/**
+ * The inset of an opening stops this short of half the width, so a part exactly the minimum width
+ * (which is not narrower than it) survives the grid rounding.
+ */
+const OPENING_SLACK_M = 0.01;
+/**
+ * Miter limit of the opening's grow, as a multiple of the distance: high enough that a corner down
+ * to about 6 degrees comes back to its point. A squared-off corner would be squared again by every
+ * further opening, so the result would never settle; the intersection with the region bounds the
+ * overshoot.
+ */
+const OPENING_MITER_LIMIT = 20;
+
+/**
+ * Morphological opening: removes every part of `region` narrower than `widthM`. Shrinks by half the
+ * width (what is narrower vanishes), grows back by the same distance with mitred joins so right-angle
+ * corners come back square, then intersects with the region so the result never leaves it.
+ * width <= 0 returns the region snapped.
+ */
+export function openRegion(region: Region, widthM: number): Region {
+  if (!(widthM > 0)) return union(region);
+  if (!Number.isFinite(widthM)) return [];
+  const half = Math.max(0, widthM / 2 - OPENING_SLACK_M);
+  const convex = region.length === 1 && isConvex(region[0] as Polygon);
+  // A convex polygon's inradius is at least a third of its width (the equilateral triangle is the
+  // extreme), so one at least three half-widths wide keeps a core without computing it.
+  if (convex && convexWidth((region[0] as Polygon).outer) >= INRADIUS_PER_WIDTH * half) return region;
+  const core = shrinkUniform(region, half);
+  if (core.length === 0) return [];
+  // A convex polygon with something left after the shrink is wide enough everywhere: the grow of
+  // its shrink covers it, so the opening is the polygon itself.
+  if (convex) return region;
+  return intersection(growUniform(core, half, OPENING_MITER_LIMIT), region);
+}
+
+/** Width over inradius of the worst convex polygon (the equilateral triangle). */
+const INRADIUS_PER_WIDTH = 3;
+
+/** Width of a convex ring: the least, over its edges, of the farthest corner from the edge's line. */
+function convexWidth(ring: Ring): number {
+  const n = ring.length;
+  let width = Infinity;
+  for (let i = 0; i < n; i++) {
+    const a = ring[i] as Pt;
+    const b = ring[(i + 1) % n] as Pt;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!(len > 0)) continue;
+    let far = 0;
+    for (const p of ring) far = Math.max(far, ((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)) / len);
+    width = Math.min(width, far);
+  }
+  return width;
+}
+
+/** A corner this little inside the line of the edge before it still counts as convex (grid jitter). */
+const CONVEX_DENT_M = 2 / CLIPPER_SCALE;
+
+/** True for a polygon without holes whose outer ring never turns clockwise, beyond grid jitter. */
+function isConvex(poly: Polygon): boolean {
+  if (poly.holes.length > 0) return false;
+  const ring = poly.outer;
+  const n = ring.length;
+  for (let i = 0; i < n; i++) {
+    const a = ring[i] as Pt;
+    const b = ring[(i + 1) % n] as Pt;
+    const c = ring[(i + 2) % n] as Pt;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (cross < -CONVEX_DENT_M * len) return false;
+  }
+  return true;
+}
+
+/** Most openings `openFully` applies; it usually settles in one or two, rarely in more. */
+const MAX_OPEN_PASSES = 8;
+/** An opening that removes less than this has settled ... */
+const SETTLED_M2 = 0.05;
+/** ... or less than a band this wide along the boundary: the grid rounding of one pass ... */
+const SETTLED_BAND_M = 1 / CLIPPER_SCALE;
+/** ... but never more than this. */
+const SETTLED_MAX_M2 = 0.4;
+
+function settledArea(region: Region): number {
+  const length = regionRings(region).reduce((s, ring) => s + perimeter(ring), 0);
+  return Math.min(SETTLED_MAX_M2, Math.max(SETTLED_M2, SETTLED_BAND_M * length));
+}
+
+/**
+ * `openRegion` repeated until it removes nothing more than grid rounding. With mitred joins the
+ * shrink and the grow are not exact inverses at oblique corners, so one pass can leave a corner
+ * sliver that a second pass removes; the settled result is stable under `openRegion` with the
+ * same width. A region that is already open is returned as it is, after one pass.
+ */
+export function openFully(region: Region, widthM: number): Region {
+  let current = region;
+  for (let i = 0; i < MAX_OPEN_PASSES; i++) {
+    const next = openRegion(current, widthM);
+    // Settled: one more opening removes no more than rounding, so `current` is the answer.
+    if (regionArea(current) - regionArea(next) < settledArea(current)) return current;
+    current = next;
+  }
+  return current;
+}
+
+/** Steps of the bisection in `regionWidth`; the half-width is found to bounds / 2^20. */
+const WIDTH_STEPS = 20;
+
+/** Width of the widest part of a region: twice the largest uniform shrink that leaves something. */
+export function regionWidth(region: Region): number {
+  const bounds = regionBounds(region);
+  if (bounds === null) return 0;
+  let lo = 0;
+  let hi = Math.min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 2;
+  for (let i = 0; i < WIDTH_STEPS; i++) {
+    const mid = (lo + hi) / 2;
+    if (shrinkUniform(region, mid).length > 0) lo = mid;
+    else hi = mid;
+  }
+  return 2 * lo;
 }
 
 export interface Bounds {

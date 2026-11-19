@@ -15,6 +15,8 @@ export const EIA_USABLE_AREA_M2 = 4_000;
 export const PERMEABLE_SHARE = 0.5;
 /** Width of the fire-truck road around a high-rise (MR 33 ข้อ 3). */
 export const FIRE_ROAD_M = 6;
+/** Title of the check, in fire-planting.ts, on whether the fire road and the planting both fit. */
+export const FIRE_PLANTING_TITLE = 'Fire road and planting together';
 /** Heights are compared to the millimetre. */
 const HEIGHT_EPSILON_M = 1e-6;
 
@@ -95,6 +97,17 @@ function permeableCheck(input: CheckInput, measured: Measured): readonly Check[]
   ];
 }
 
+const BOUNDARY_SETBACK_RULE = 'mr33.boundary-6m';
+
+/**
+ * What the envelope says about room for the fire road: the high-rise setback is 6 m on every
+ * boundary (MR 33 ข้อ 4), which leaves room for it, unless that rule is switched off.
+ */
+function roomForFireRoad(input: CheckInput): string {
+  if (isEnabled(input, BOUNDARY_SETBACK_RULE)) return `The ${m(FIRE_ROAD_M)} setback leaves room for it on every side; the tool does not lay it out.`;
+  return `With the ${m(FIRE_ROAD_M)} setback switched off, the tool cannot say there is room for it; it does not lay it out.`;
+}
+
 function fireRoadCheck(input: CheckInput, measured: Measured): readonly Check[] {
   const id = 'mr33.fire-road';
   if (input.regime.regime !== 'highRise' || !isEnabled(input, id)) return [];
@@ -104,8 +117,8 @@ function fireRoadCheck(input: CheckInput, measured: Measured): readonly Check[] 
       ruleId: id,
       title: titleOf(input, id, 'Fire-truck access'),
       status: 'info',
-      required: `A ${m(FIRE_ROAD_M)} fire-truck road, open to the sky, all around the building.`,
-      actual: `It lies within the ${m(FIRE_ROAD_M)} setback strip around the ${m2(ground)} footprint; keep that strip clear in the site plan.`,
+      required: `A ${m(FIRE_ROAD_M)} wide fire road must run all around the building, open to the sky.`,
+      actual: `${roomForFireRoad(input)} Whether the planting also fits beside it around the ${m2(ground)} footprint is checked under “${FIRE_PLANTING_TITLE}”.`,
     }),
   ];
 }

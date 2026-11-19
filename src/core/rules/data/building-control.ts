@@ -197,7 +197,8 @@ export const BUILDING_CONTROL_RULES: readonly RuleSpec[] = [
     regimes: ['highRise'],
     requirement:
       'Leave a fire-truck road at least 6 m wide, open to the sky, all around the building, and keep a 12 m wide open strip from the road frontage to the building.',
-    basis: 'This road can lie inside the setback strips, so it does not shrink the envelope here; check it in the site plan.',
+    basis:
+      'The 6 m high-rise setback on every boundary leaves room for this road, so it does not shrink the envelope here. The tool does not lay out the road or the 12 m strip; check both in the site plan.',
     meta: {
       id: 'mr33.fire-road',
       category: 'access',

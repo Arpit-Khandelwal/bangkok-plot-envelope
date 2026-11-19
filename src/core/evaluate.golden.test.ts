@@ -172,8 +172,9 @@ describe('golden case 4: office on a 60 x 60 m plot with a 16 m road', () => {
     const high = designById(off, 'high-rise-max');
     expect(high.totals.mainUseFloorAreaM2).toBeLessThanOrEqual(10000);
     expect(high.totals.mainUseFloorAreaM2).toBeGreaterThan(9999);
-    // Two whole floors of 2,304 and 72 m² at the back of level 3: 167 stalls for 167.
-    expect(high.totals.parkingFloorAreaM2).toBeCloseTo(4680, 0);
+    // Two whole floors of 2,304 and 84 m² in a back corner of level 3: 167 stalls for 167. (A strip
+    // across the whole back would be 1.5 m deep, too narrow to park in, so the corner is 7 m deep.)
+    expect(high.totals.parkingFloorAreaM2).toBeCloseTo(4692, 0);
     expect([high.totals.parkingRequired, high.totals.parkingProvided]).toEqual([167, 167]);
   });
 

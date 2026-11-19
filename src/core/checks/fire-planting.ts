@@ -8,14 +8,14 @@
 import { difference, growUniform, intersection, regionArea } from '../geom';
 import { m, m2, m2Vs } from '../rules/format';
 import type { Check, Region } from '../types';
-import { FIRE_ROAD_M, PERMEABLE_SHARE } from './building';
+import { FIRE_PLANTING_TITLE, FIRE_ROAD_M, PERMEABLE_SHARE } from './building';
 import { isEnabled, makeCheck } from './context';
 import type { CheckInput, Measured } from './context';
 import { requiredOpenSpace } from './geometry';
 
 const FIRE_RULE = 'mr33.fire-road';
 const PERMEABLE_RULE = 'plan.permeable';
-export const FIRE_PLANTING_TITLE = 'Fire road and planting together';
+export { FIRE_PLANTING_TITLE };
 
 function fireRing(input: CheckInput, footprint: Region): number {
   const plot: Region = [{ outer: input.site.ring, holes: [] }];

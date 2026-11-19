@@ -28,7 +28,7 @@ describe('front open space (clauses 52(6) and 53)', () => {
   });
 
   it('warns when the façade facing the road is too short a share of the perimeter', () => {
-    const e = expectOk(evaluate(scenario(rect(12, 100), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR])));
+    const e = expectOk(evaluate(scenario(rect(16, 100), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR])));
     expect(e.designs.length).toBeGreaterThan(0);
     for (const d of e.designs) {
       const c = frontCheck(d);
@@ -38,7 +38,7 @@ describe('front open space (clauses 52(6) and 53)', () => {
   });
 
   it('never fails', () => {
-    for (const s of [scenario(rect(12, 100), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR]), scenario(rect(40, 40), [road(8), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR])]) {
+    for (const s of [scenario(rect(16, 100), [road(12), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR]), scenario(rect(40, 40), [road(8), NEIGHBOUR, NEIGHBOUR, NEIGHBOUR])]) {
       const e = expectOk(evaluate(s));
       for (const d of e.designs) expect(frontCheck(d).status).not.toBe('fail');
     }

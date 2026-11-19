@@ -4,8 +4,11 @@
  */
 import { regionArea } from '../geom';
 import { parkingNeed, stallsProvided } from '../measure/areas';
+import { levelCount } from '../measure/levels';
 import type { Region } from '../types';
+import { MAX_STOREYS } from './context';
 import type { DesignContext } from './context';
+import { MIN_MAIN_WIDTH_M } from './habitable';
 import { insetToArea } from './plate';
 import { buildStack } from './stack';
 import type { Stack } from './stack';
@@ -94,7 +97,7 @@ function stackWithParking(ctx: DesignContext, plate: Region, opts: VariantOption
   };
   const bare = probe(0);
   if (!hasMainUse(bare.stack)) return null;
-  if (bare.margin >= 0) return exact(probe, 0);
+  if (bare.margin >= 0) return exactStack(ctx, plate, opts, probe, 0);
   if (ctx.regime.parking.ruleId !== null && stallsProvided(regionArea(plate), ctx.assumptions) === 0) return null;
   let lo = bare;
   let hi = probe(required(ctx, bare.stack));
@@ -111,20 +114,63 @@ function stackWithParking(ctx: DesignContext, plate: Region, opts: VariantOption
     else lo = Number.isFinite(next.margin) ? next : { ...next, margin: lo.margin };
     bisect = hi.stalls - lo.stalls > span / 2;
   }
-  return exact(probe, hi.stalls);
+  return exactStack(ctx, plate, opts, probe, hi.stalls);
 }
 
 /** Extra stalls tried when the exact stack falls short of the sketched one. */
 const EXACT_RETRIES = 3;
+/** Parking may exceed the requirement by at most this many stalls. */
+const MAX_SPARE_STALLS = 1;
 
 /**
  * Rebuilds the chosen stall count exactly. A trimmed floor can come out up to the area tolerance
  * smaller than sketched, which can change the requirement by a stall, so a few more are tried.
  */
-function exact(probe: (stalls: number, sketch?: boolean) => Probe, stalls: number): Stack | null {
+function exact(probe: (stalls: number, sketch?: boolean) => Probe, stalls: number): Probe | null {
   for (let extra = 0; extra <= EXACT_RETRIES; extra++) {
     const found = probe(stalls + extra, false);
-    if (found.margin >= 0) return found.stack;
+    if (found.margin >= 0) return found;
+  }
+  return null;
+}
+
+/**
+ * The exact stack for the chosen stall count. Habitable plates make the margin jump: a shared level
+ * whose parking part cannot be cut falls back to a whole parking floor, and the requirement drops
+ * when a narrow rest of a shared level or a small top floor is lost. The search can then stop on a
+ * count that parks many stalls too many, so the counts above it are scanned for one that parks at
+ * most one spare; failing that, the parking is sized to the lower requirement with the narrow rest
+ * left open and no storey added, when that keeps the main use.
+ */
+function exactStack(ctx: DesignContext, plate: Region, opts: VariantOptions, probe: (stalls: number, sketch?: boolean) => Probe, stalls: number): Stack | null {
+  const found = exact(probe, stalls);
+  if (found === null || found.margin <= MAX_SPARE_STALLS) return found?.stack ?? null;
+  return (scanUp(probe, found) ?? sizeToLowerRequirement(ctx, plate, opts, found)).stack;
+}
+
+/** The parking sized to the lower requirement, the narrow rest left open and no storey added. */
+function sizeToLowerRequirement(ctx: DesignContext, plate: Region, opts: VariantOptions, found: Probe): Probe {
+  let best = found;
+  for (let i = 0; i < EXACT_RETRIES && best.margin > MAX_SPARE_STALLS; i++) {
+    const fewer = required(ctx, best.stack);
+    const maxStoreys = Math.min(opts.maxStoreys ?? MAX_STOREYS, levelCount(best.stack.floors));
+    const stack = buildStack(ctx, plate, { ...opts, maxStoreys, parkingStalls: fewer, openSharedRest: true });
+    const margin = hasMainUse(stack) ? stallsProvided(stack.sums.parking, ctx.assumptions) - required(ctx, stack) : Number.NEGATIVE_INFINITY;
+    const keepsMain = stack.sums.main >= best.stack.sums.main - PLATE_TOLERANCE_M2;
+    if (!(margin >= 0 && margin < best.margin && keepsMain)) break;
+    best = { stalls: fewer, stack, margin };
+  }
+  return best;
+}
+
+/** The first count above `found` whose exact stack parks the requirement with at most one spare. */
+function scanUp(probe: (stalls: number, sketch?: boolean) => Probe, found: Probe): Probe | null {
+  const last = found.stalls + found.margin + EXACT_RETRIES;
+  for (let s = found.stalls + 1; s <= last; s++) {
+    const sketched = probe(s);
+    if (!(sketched.margin >= 0 && sketched.margin <= MAX_SPARE_STALLS)) continue;
+    const confirmed = exact(probe, s);
+    if (confirmed !== null && confirmed.margin <= MAX_SPARE_STALLS) return confirmed;
   }
   return null;
 }
@@ -143,6 +189,7 @@ function grossGuess(ctx: DesignContext, opts: VariantOptions): number {
  * most main-use floor area is kept.
  */
 export function generateVariant(ctx: DesignContext, opts: VariantOptions): Generated | null {
+  if (ctx.basePlate.length === 0) return null;
   const first = generateOnPlate(ctx, opts);
   if (first !== null) return first;
   let target = Math.min(opts.plateAreaM2, regionArea(ctx.basePlate));
@@ -168,8 +215,9 @@ function generateOnPlate(ctx: DesignContext, opts: VariantOptions): Generated | 
   for (let round = 0; round < OPEN_SPACE_ROUNDS; round++) {
     const cap = coverageCap(ctx, gross);
     if (!(cap > 0)) return null;
-    const plate = insetToArea(ctx.basePlate, Math.min(cap, opts.plateAreaM2), PLATE_TOLERANCE_M2);
+    const plate = insetToArea(ctx.basePlate, Math.min(cap, opts.plateAreaM2), PLATE_TOLERANCE_M2, MIN_MAIN_WIDTH_M);
     if (plate.areaM2 <= 0) return null;
+    ctx.openWidths.set(plate.region, MIN_MAIN_WIDTH_M);
     const stack = stackWithParking(ctx, plate.region, opts);
     if (stack === null) return null;
     const needed = coverageCap(ctx, stack.sums.gross);
