@@ -22,6 +22,18 @@ const LABEL_FONT = ['Noto Sans Regular'];
 let footprints: readonly BuildingFootprint[] | null = null;
 /** The ids hidden last time, so an edit that hides the same buildings skips re-filtering. */
 let lastHiddenKey: string | null = null;
+let lastHiddenIds: ReadonlySet<number> = new Set();
+
+/** The loaded buildings and those hidden on the plot, for choosing a clear camera view. */
+export interface BuildingContext {
+  readonly buildings: readonly BuildingFootprint[];
+  readonly hiddenIds: ReadonlySet<number>;
+}
+
+/** Null until the surrounding buildings have loaded. */
+export function buildingContext(): BuildingContext | null {
+  return footprints ? { buildings: footprints, hiddenIds: lastHiddenIds } : null;
+}
 
 const isEstimated: ExpressionSpecification = ['==', ['get', 'hSrc'], 'est'];
 
@@ -114,6 +126,7 @@ export function hideBuildingsInside(map: MapLibreMap, plot: readonly LngLat[] | 
   const hiddenKey = hidden.join(',');
   if (hiddenKey === lastHiddenKey) return;
   lastHiddenKey = hiddenKey;
+  lastHiddenIds = new Set(hidden);
   map.setFilter(KNOWN_BUILDINGS_LAYER, buildingFilter(['!', isEstimated], hidden));
   map.setFilter(ESTIMATED_BUILDINGS_LAYER, buildingFilter(isEstimated, hidden));
 }

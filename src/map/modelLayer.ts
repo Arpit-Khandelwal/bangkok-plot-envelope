@@ -2,6 +2,7 @@ import { MercatorCoordinate } from 'maplibre-gl';
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MapLibreMap } from 'maplibre-gl';
 import * as THREE from 'three';
 import type { LngLat, Mesh } from '../core/types';
+import { shadeTriangles } from './cardShading';
 
 /** How one mesh is drawn. `glass` is for envelopes, `solid` for building floors. */
 export interface ModelPart {
@@ -48,17 +49,6 @@ const LOOKS: Readonly<Record<ModelPart['look'], LookStyle>> = {
  */
 const ORDER = { solid: 1, glass: 2, edges: 3, xray: 4 } as const;
 
-/**
- * Lights for a white card model. Lambert shading in three.js gives
- * albedo * (ambient + sun * max(0, n.l)) / pi in linear light. With these values a roof
- * (n.l = 0.81) is just under full white, sunlit walls sit around 0.9 in sRGB and walls facing
- * away from the sun around 0.75, and even the darkest use colour (parking) stays near mid grey.
- */
-const AMBIENT_INTENSITY = 1.6;
-const SUN_INTENSITY = 1.8;
-/** Sun from the south-south-west, high: walls facing different ways get clearly different shades. */
-const SUN_POSITION = new THREE.Vector3(-0.6, -0.8, 1.4);
-
 function toGeometry(mesh: Mesh): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3));
@@ -66,11 +56,35 @@ function toGeometry(mesh: Mesh): THREE.BufferGeometry {
   return geometry;
 }
 
+/**
+ * The solid's faces as separate triangles with fixed colours: the use colour on roofs and floor
+ * plates, darker on walls facing away from the sun (see cardShading.ts). Unlit, so the design is
+ * always the lightest thing in the scene, a white card model.
+ */
+function cardGeometry(part: ModelPart): THREE.BufferGeometry {
+  const { positions, shades } = shadeTriangles(part.mesh);
+  const base = new THREE.Color(part.color);
+  const srgb = { r: 0, g: 0, b: 0 };
+  base.getRGB(srgb, THREE.SRGBColorSpace);
+  const colours = new Float32Array(shades.length * 3);
+  const shaded = new THREE.Color();
+  shades.forEach((shade, vertex) => {
+    // Shades are applied in sRGB, where they were chosen; setRGB stores linear values.
+    shaded.setRGB(srgb.r * shade, srgb.g * shade, srgb.b * shade, THREE.SRGBColorSpace);
+    colours[vertex * 3] = shaded.r;
+    colours[vertex * 3 + 1] = shaded.g;
+    colours[vertex * 3 + 2] = shaded.b;
+  });
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colours, 3));
+  return geometry;
+}
+
 function surfaceMaterial(part: ModelPart, style: LookStyle): THREE.Material {
   if (part.look === 'solid') {
-    return new THREE.MeshLambertMaterial({
-      color: part.color,
-      flatShading: true,
+    return new THREE.MeshBasicMaterial({
+      vertexColors: true,
       side: THREE.DoubleSide,
       // Push faces back a little so the edge lines lying on them always win the depth test.
       polygonOffset: true,
@@ -100,13 +114,14 @@ export function buildPart(part: ModelPart): THREE.Group {
   const isSolid = part.look === 'solid';
 
   if (style.faceOpacity !== null) {
-    const body = new THREE.Mesh(geometry, surfaceMaterial(part, style));
+    const body = new THREE.Mesh(isSolid ? cardGeometry(part) : geometry, surfaceMaterial(part, style));
     body.renderOrder = isSolid ? ORDER.solid : ORDER.glass;
     group.add(body);
   }
 
   const edges = new THREE.EdgesGeometry(geometry, EDGE_ANGLE_DEGREES);
-  if (style.faceOpacity === null) geometry.dispose();
+  // The indexed geometry is only kept where it is drawn as faces (glass); edges have their own.
+  if (style.faceOpacity === null || isSolid) geometry.dispose();
   const lineColor = isSolid ? INK : part.color;
   const visible = edgeLines(edges, lineColor, style.edgeOpacity, true);
   visible.renderOrder = ORDER.edges;
@@ -151,10 +166,6 @@ export class ModelLayer implements CustomLayerInterface {
 
   constructor() {
     this.scene.add(this.root);
-    this.scene.add(new THREE.AmbientLight('#ffffff', AMBIENT_INTENSITY));
-    const sun = new THREE.DirectionalLight('#ffffff', SUN_INTENSITY);
-    sun.position.copy(SUN_POSITION);
-    this.scene.add(sun);
   }
 
   onAdd(map: MapLibreMap, gl: WebGLRenderingContext | WebGL2RenderingContext): void {

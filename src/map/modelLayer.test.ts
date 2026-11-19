@@ -33,12 +33,15 @@ describe('buildPart', () => {
     const { meshes, lines } = children(buildPart(part('solid')));
     expect(meshes).toHaveLength(1);
     const surface = meshes[0]?.material;
-    expect(surface).toBeInstanceOf(THREE.MeshLambertMaterial);
-    if (!(surface instanceof THREE.MeshLambertMaterial)) return;
+    expect(surface).toBeInstanceOf(THREE.MeshBasicMaterial);
+    if (!(surface instanceof THREE.MeshBasicMaterial)) return;
     expect(surface.polygonOffset).toBe(true);
     expect(surface.polygonOffsetFactor).toBe(1);
     expect(surface.polygonOffsetUnits).toBe(1);
-    expect(surface.flatShading).toBe(true);
+    expect(surface.vertexColors).toBe(true);
+    expect(surface.transparent).toBe(false);
+    // One colour per vertex of 12 separate triangles.
+    expect(meshes[0]?.geometry.getAttribute('color').count).toBe(36);
 
     expect(lines).toHaveLength(2);
     const [visible, xray] = lines;
@@ -49,6 +52,20 @@ describe('buildPart', () => {
     expect(xray?.renderOrder ?? 0).toBeGreaterThan(visible?.renderOrder ?? 0);
     expect(xray?.renderOrder ?? 0).toBeGreaterThan(meshes[0]?.renderOrder ?? 0);
     expect(xray?.geometry).toBe(visible?.geometry);
+  });
+
+  it('colours the white card lightest on the roof and never darker than the shaded-wall grey', () => {
+    const { meshes } = children(buildPart(part('solid')));
+    const colours = meshes[0]?.geometry.getAttribute('color');
+    if (!colours) throw new Error('expected vertex colours');
+    const srgb = Array.from({ length: colours.count }, (_, vertex) => {
+      const colour = new THREE.Color(colours.getX(vertex), colours.getY(vertex), colours.getZ(vertex));
+      const out = { r: 0, g: 0, b: 0 };
+      colour.getRGB(out, THREE.SRGBColorSpace);
+      return out.g * 255;
+    });
+    expect(Math.max(...srgb)).toBeGreaterThan(0xf8);
+    expect(Math.min(...srgb)).toBeGreaterThanOrEqual(0xb9);
   });
 
   it('draws glass as faint faces that never write depth, crisp edges and a fainter see-through pass', () => {

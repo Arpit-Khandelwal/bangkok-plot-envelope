@@ -20,6 +20,8 @@ interface FootprintPolygon {
 export interface BuildingFootprint {
   /** The building's `i` property. */
   readonly id: number;
+  /** Height in metres (the `h` property), 0 when unknown. */
+  readonly height: number;
   readonly polygons: readonly FootprintPolygon[];
   readonly minLng: number;
   readonly minLat: number;
@@ -42,7 +44,13 @@ function polygonsOf(geometry: Geometry): Position[][][] {
   return [];
 }
 
-function toFootprint(feature: Feature<Geometry, { readonly i: number }>): BuildingFootprint | null {
+/** The properties the footprint index reads. */
+export interface FootprintProperties {
+  readonly i: number;
+  readonly h?: number;
+}
+
+function toFootprint(feature: Feature<Geometry, FootprintProperties>): BuildingFootprint | null {
   const polygons = polygonsOf(feature.geometry)
     .map(([outer, ...holes]): FootprintPolygon => ({ outer: openRing(outer ?? []), holes: holes.map(openRing) }))
     .filter((polygon) => polygon.outer.length >= 3);
@@ -59,11 +67,20 @@ function toFootprint(feature: Feature<Geometry, { readonly i: number }>): Buildi
       maxLat = Math.max(maxLat, lat);
     }),
   );
-  return { id: feature.properties.i, polygons, minLng, minLat, maxLng, maxLat };
+  const height = feature.properties.h;
+  return {
+    id: feature.properties.i,
+    height: typeof height === 'number' && Number.isFinite(height) ? height : 0,
+    polygons,
+    minLng,
+    minLat,
+    maxLng,
+    maxLat,
+  };
 }
 
 /** Precomputes bounding boxes once per dataset, so each plot edit only scans numbers. */
-export function indexFootprints(features: readonly Feature<Geometry, { readonly i: number }>[]): BuildingFootprint[] {
+export function indexFootprints(features: readonly Feature<Geometry, FootprintProperties>[]): BuildingFootprint[] {
   return features.flatMap((feature) => {
     const footprint = toFootprint(feature);
     return footprint ? [footprint] : [];

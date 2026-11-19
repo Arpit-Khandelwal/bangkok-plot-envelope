@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Map as MapLibreMap, NavigationControl, ScaleControl, setWorkerUrl } from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from 'terra-draw';
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
 import type { LngLat } from '../core/types';
 import { useAppStore } from '../state/store';
-import { addContextLayers, hideBuildingsInside, raiseOverlayLayers } from './contextLayers';
+import { addContextLayers, buildingContext, hideBuildingsInside, raiseOverlayLayers } from './contextLayers';
 import { exposeDebugHandle } from './debugHandle';
+import { createDraw, linkDraw, writeStoreToDraw, type DrawLink } from './drawSync';
 import { createEdgeMarkers, plotKey, setEdgeMarkerOffsets, updateEdgeMarker, type EdgeMarker } from './edgeMarkers';
 import { NavigationWithFrameControl } from './frameControl';
 import {
@@ -23,6 +23,7 @@ import {
 } from './framing';
 import { outwardOffsets } from './markerOffset';
 import { MODEL_LAYER_ID, ModelLayer } from './modelLayer';
+import { chooseView } from './viewChoice';
 import type { ModelContent } from './modelLayer';
 
 // MapLibre 6 ships its worker as a separate ES module. Vite must bundle it and hand us the URL.
@@ -39,10 +40,6 @@ const FRAME_DURATION_MS = 900;
 /** Overlays drawn over the map from 900 px up; framing keeps the plot clear of them. */
 const MAP_OVERLAY_SELECTOR = '.site-bar, .legend';
 
-const PLOT_OUTLINE = '#12303a';
-const PLOT_FILL = '#12303a';
-const HANDLE_FILL = '#ffffff';
-
 interface MapViewProps {
   /** The envelope and design meshes to draw, or null when there is nothing to show. */
   readonly model: ModelContent | null;
@@ -53,56 +50,8 @@ interface MapParts {
   readonly map: MapLibreMap;
   readonly modelLayer: ModelLayer;
   readonly navigation: NavigationWithFrameControl;
-  draw: TerraDraw | null;
+  drawLink: DrawLink | null;
   framing: FramingState;
-}
-
-function toOpenRing(closedRing: readonly (readonly number[])[]): LngLat[] {
-  return closedRing.slice(0, -1).map((position) => [position[0] ?? 0, position[1] ?? 0] as const);
-}
-
-function createDraw(map: MapLibreMap): TerraDraw {
-  return new TerraDraw({
-    adapter: new TerraDrawMapLibreGLAdapter({ map }),
-    modes: [
-      new TerraDrawPolygonMode({
-        styles: {
-          fillColor: PLOT_FILL,
-          fillOpacity: 0.12,
-          outlineColor: PLOT_OUTLINE,
-          outlineWidth: 2,
-          closingPointColor: HANDLE_FILL,
-          closingPointOutlineColor: PLOT_OUTLINE,
-          closingPointOutlineWidth: 2,
-          closingPointWidth: 6,
-        },
-      }),
-      new TerraDrawSelectMode({
-        flags: {
-          polygon: {
-            feature: {
-              draggable: true,
-              coordinates: { midpoints: true, draggable: true, deletable: true },
-            },
-          },
-        },
-        styles: {
-          selectedPolygonColor: PLOT_FILL,
-          selectedPolygonFillOpacity: 0.06,
-          selectedPolygonOutlineColor: PLOT_OUTLINE,
-          selectedPolygonOutlineWidth: 2,
-          selectionPointColor: HANDLE_FILL,
-          selectionPointOutlineColor: PLOT_OUTLINE,
-          selectionPointOutlineWidth: 2,
-          selectionPointWidth: 6,
-          midPointColor: PLOT_OUTLINE,
-          midPointOutlineColor: HANDLE_FILL,
-          midPointOutlineWidth: 1,
-          midPointWidth: 4,
-        },
-      }),
-    ],
-  });
 }
 
 function prefersReducedMotion(): boolean {
@@ -119,8 +68,9 @@ function overlayRects(container: HTMLElement): ScreenRect[] {
 }
 
 /**
- * Moves the camera so the plot fills about a third of the map left clear by the overlays,
- * pitched, and looking into the plot from its widest road (the current bearing if none).
+ * Moves the camera so the plot fills about a third of the map left clear by the overlays, from
+ * the view where surrounding buildings hide least of it (see `chooseView`; ties go to the road
+ * side). Before the buildings load it simply looks in from the widest road.
  */
 function framePlot(map: MapLibreMap): void {
   const { plot, edges } = useAppStore.getState();
@@ -128,15 +78,20 @@ function framePlot(map: MapLibreMap): void {
   const container = map.getContainer();
   const width = container.clientWidth;
   const height = container.clientHeight;
-  const bearing = roadSideBearing(plot, edges) ?? map.getBearing();
+  // Hidden on-plot buildings must already be excluded, so bring the filter up to date first.
+  hideBuildingsInside(map, plot);
+  const context = buildingContext();
+  const { bearing, pitch } = context
+    ? chooseView({ plot, edges, ...context, currentBearing: map.getBearing() })
+    : { bearing: roadSideBearing(plot, edges) ?? map.getBearing(), pitch: FRAME_PITCH_DEGREES };
   const free = freeViewport(width, height, overlayRects(container));
-  const camera = plotCamera({ plot, bearing, pitch: FRAME_PITCH_DEGREES, width, height, free });
+  const camera = plotCamera({ plot, bearing, pitch, width, height, free });
   if (!camera) return;
   map.easeTo({
     center: [camera.center[0], camera.center[1]],
     zoom: camera.zoom,
     bearing,
-    pitch: FRAME_PITCH_DEGREES,
+    pitch,
     offset: [camera.offset[0], camera.offset[1]],
     duration: prefersReducedMotion() ? 0 : FRAME_DURATION_MS,
   });
@@ -182,7 +137,7 @@ export function MapView({ model, onDataError }: MapViewProps) {
     map.addControl(navigation, 'bottom-left');
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
 
-    const parts: MapParts = { map, modelLayer: new ModelLayer(), navigation, draw: null, framing: INITIAL_FRAMING };
+    const parts: MapParts = { map, modelLayer: new ModelLayer(), navigation, drawLink: null, framing: INITIAL_FRAMING };
     partsRef.current = parts;
     const removeDebugHandle = exposeDebugHandle(window, window.location.search, map);
     let isRemoved = false;
@@ -202,39 +157,19 @@ export function MapView({ model, onDataError }: MapViewProps) {
           onDataErrorRef.current(`Surrounding buildings and zones could not be loaded (${detail}). Reload to try again.`);
         });
 
-      const draw = createDraw(map);
-      parts.draw = draw;
+      const draw = createDraw(new TerraDrawMapLibreGLAdapter({ map }));
       draw.start();
+      parts.drawLink = linkDraw(draw, () =>
+        applyFraming(parts, { type: 'drawn', hasRoad: hasRoad(useAppStore.getState().edges) }),
+      );
 
-      const publishPlot = (): void => {
-        const finished = draw
-          .getSnapshot()
-          .find((feature) => feature.geometry.type === 'Polygon' && feature.properties.currentlyDrawing !== true);
-        if (!finished || finished.geometry.type !== 'Polygon') return;
-        const ring = finished.geometry.coordinates[0];
-        if (ring && ring.length >= 4) useAppStore.getState().setPlotFromMap(toOpenRing(ring));
-      };
-
-      draw.on('finish', (id, context) => {
-        publishPlot();
-        draw.setMode('select');
-        draw.selectFeature(id);
-        // 'finish' also follows corner drags and inserted corners; only a closed drawing frames.
-        if (context.action === 'draw') {
-          applyFraming(parts, { type: 'drawn', hasRoad: hasRoad(useAppStore.getState().edges) });
-        }
-      });
-      draw.on('change', (_ids, type) => {
-        if (type !== 'delete') publishPlot();
-      });
-
-      syncDrawToStore(parts);
+      writeStoreToDraw(parts.drawLink);
     });
 
     return () => {
       isRemoved = true;
       removeDebugHandle();
-      parts.draw?.stop();
+      parts.drawLink?.draw.stop();
       map.remove();
       partsRef.current = null;
     };
@@ -245,7 +180,7 @@ export function MapView({ model, onDataError }: MapViewProps) {
   useEffect(() => {
     const parts = partsRef.current;
     if (!parts) return;
-    if (parts.draw) syncDrawToStore(parts);
+    if (parts.drawLink) writeStoreToDraw(parts.drawLink);
     if (plotRevision === 0) return;
     applyFraming(parts, useAppStore.getState().plot ? { type: 'preset' } : { type: 'cleared' });
   }, [plotRevision]);
@@ -305,25 +240,4 @@ export function MapView({ model, onDataError }: MapViewProps) {
   }, [model]);
 
   return <div ref={containerRef} className="map-root" data-testid="map" role="application" aria-label="Map of the site. Click to place the corners of the plot." />;
-}
-
-/** Makes the drawing tool show exactly the plot held in the store. */
-function syncDrawToStore(parts: MapParts): void {
-  const { draw } = parts;
-  if (!draw) return;
-  const { plot } = useAppStore.getState();
-  draw.clear();
-  if (!plot) {
-    draw.setMode('polygon');
-    return;
-  }
-  const first = plot[0];
-  if (!first) return;
-  const closedRing = [...plot, first].map((point) => [point[0], point[1]]);
-  const results = draw.addFeatures([
-    { type: 'Feature', properties: { mode: 'polygon' }, geometry: { type: 'Polygon', coordinates: [closedRing] } },
-  ]);
-  draw.setMode('select');
-  const added = results.find((result) => result.valid && result.id !== undefined);
-  if (added?.id !== undefined) draw.selectFeature(added.id);
 }

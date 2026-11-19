@@ -42,3 +42,24 @@ describe('setRoadWidth', () => {
     ]);
   });
 });
+
+describe('setPlotFromMap', () => {
+  it('keeps a road on the same physical edge when the map hands back the ring reversed', () => {
+    // Arrange: SAMPLE_PLOT runs SW, SE, NE, NW, so edge 0 is the south edge.
+    const road: EdgeSpec = { kind: 'road', roadId: 'road-1', rowWidthM: 12 };
+    resetStore({ plot: SAMPLE_PLOT, edges: [road, { kind: 'neighbour' }, { kind: 'neighbour' }, { kind: 'neighbour' }] });
+    const [sw, se, ne, nw] = SAMPLE_PLOT;
+    if (!sw || !se || !ne || !nw) throw new Error('sample plot needs four corners');
+
+    // Act: the same square walked clockwise from the same corner.
+    useAppStore.getState().setPlotFromMap([sw, nw, ne, se]);
+
+    // Assert: the south edge is now the last edge, from SE back to SW.
+    expect(useAppStore.getState().edges).toEqual([
+      { kind: 'neighbour' },
+      { kind: 'neighbour' },
+      { kind: 'neighbour' },
+      road,
+    ]);
+  });
+});
