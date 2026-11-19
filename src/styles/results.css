@@ -226,7 +226,9 @@
   gap: 6px;
   font-size: var(--text-sm);
   font-weight: 600;
-  white-space: nowrap;
+  /* "Passes under this reading" is longer than a narrow table column: let it wrap, never overlap. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .status-mark__icon {
