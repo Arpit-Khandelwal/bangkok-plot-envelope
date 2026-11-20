@@ -29,6 +29,22 @@ export function setbackDistances(site: Site, setbacks: readonly EdgeSetback[]): 
  * ARC_TOLERANCE_M. Can return several pieces, or none; never throws.
  */
 export function applySetbacks(site: Site, setbacks: readonly EdgeSetback[]): Region {
+  const bySetbacks = footprintMemo.get(site) ?? new WeakMap<readonly EdgeSetback[], Region>();
+  const known = bySetbacks.get(setbacks);
+  if (known !== undefined) return known;
+  const footprint = computeSetbacks(site, setbacks);
+  footprintMemo.set(site, bySetbacks.set(setbacks, footprint));
+  return footprint;
+}
+
+/**
+ * Footprints already computed, keyed by the site and the setback list objects. An evaluation asks
+ * for the same regime's footprint twice (its envelope, and whether it is on a public road); both
+ * objects are built afresh for every evaluation, so nothing is shared between evaluations.
+ */
+const footprintMemo = new WeakMap<Site, WeakMap<readonly EdgeSetback[], Region>>();
+
+function computeSetbacks(site: Site, setbacks: readonly EdgeSetback[]): Region {
   const plot: Region = [{ outer: site.ring, holes: [] }];
   const d = setbackDistances(site, setbacks);
   const ring = site.ring;

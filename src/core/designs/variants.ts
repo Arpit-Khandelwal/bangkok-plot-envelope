@@ -95,26 +95,68 @@ function frontRuleOn(ctx: DesignContext): boolean {
   return ctx.regime.rules.some((r) => r.id === FRONT_ACCESS_RULE && !r.disabled);
 }
 
+/** `f` with its result kept per argument, so asking again for the same argument costs nothing. */
+function memoize<A extends object, T>(f: (a: A) => T): (a: A) => T {
+  const memo = new WeakMap<A, T>();
+  return (a) => {
+    if (memo.has(a)) return memo.get(a) as T;
+    const value = f(a);
+    memo.set(a, value);
+    return value;
+  };
+}
+
+/** `f`, run at most once, on first use. */
+function once<T>(f: () => T): () => T {
+  let done = false;
+  let value: T | undefined;
+  return () => {
+    if (!done) {
+      value = f();
+      done = true;
+    }
+    return value as T;
+  };
+}
+
+/**
+ * What `preferNearRoad` may compute for one generated design, each part on first use and at most
+ * once: the design as placed, its verdict, and each move toward the road with its design. A design
+ * offered twice (the high-rise, once as genuinely high and again as a fallback) shares one trial,
+ * so the second offer only applies its own `keeps`.
+ */
+interface NearRoadTrial {
+  readonly ctx: DesignContext;
+  readonly placed: Generated;
+  readonly make: (g: Generated) => Design;
+  readonly verdict: (g: Generated) => FrontVerdict;
+  readonly moves: readonly (() => Generated | null)[];
+}
+
+function nearRoadTrial(ctx: DesignContext, placed: Generated, opts: VariantOptions, make: (g: Generated) => Design): NearRoadTrial {
+  return {
+    ctx,
+    placed,
+    make: memoize(make),
+    verdict: memoize((g: Generated) => verdictOf(ctx, g)),
+    moves: [slideTowardRoad, bandAlongRoad].map((place) => once(() => place(ctx, placed, opts))),
+  };
+}
+
 /**
  * The design, when it falls under ข้อ 53 and misses it where it stands: moved toward the road, or
  * else rebuilt on a band along the road, whichever first meets it and still passes every check with
  * the same floor area; otherwise left where it is.
  */
-function preferNearRoad(
-  ctx: DesignContext,
-  placed: Generated,
-  opts: VariantOptions,
-  make: (g: Generated) => Design,
-  keeps: (g: Generated) => boolean,
-): Design {
-  const design = make(placed);
-  if (!frontRuleOn(ctx)) return design;
-  const verdict = verdictOf(ctx, placed);
+function preferNearRoad(trial: NearRoadTrial, keeps: (g: Generated) => boolean): Design {
+  const design = trial.make(trial.placed);
+  if (!frontRuleOn(trial.ctx)) return design;
+  const verdict = trial.verdict(trial.placed);
   if (verdict.met || verdict.clause !== 'clause53') return design;
-  for (const place of [slideTowardRoad, bandAlongRoad]) {
-    const found = place(ctx, placed, opts);
-    if (found === null || !keeps(found) || !verdictOf(ctx, found).met) continue;
-    const moved = make(found);
+  for (const move of trial.moves) {
+    const found = move();
+    if (found === null || !keeps(found) || !trial.verdict(found).met) continue;
+    const moved = trial.make(found);
     const sameArea = moved.totals.grossFloorAreaM2 >= design.totals.grossFloorAreaM2 - SLIDE_AREA_TOLERANCE_M2;
     if (moved.passes && sameArea) return moved;
   }
@@ -131,11 +173,14 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
   const out: Design[] = [];
   // Every design moves toward the road when that lets it meet ข้อ 53. One that still fails its
   // front-access clause is ruled out by the ordinance as read, so it is never a candidate.
-  const add = (ctx: DesignContext, g: Generated | null, opts: VariantOptions, make: (g: Generated) => Design, keeps: (g: Generated) => boolean = () => true): void => {
-    if (g === null || g.stack.floors.length === 0) return;
-    const design = preferNearRoad(ctx, g, opts, make, keeps);
+  const offer = (trial: NearRoadTrial, keeps: (g: Generated) => boolean = () => true): void => {
+    if (trial.placed.stack.floors.length === 0) return;
+    const design = preferNearRoad(trial, keeps);
     if (frontFails(design)) return;
     if (design.passes || inputs.hypothetical) out.push(design);
+  };
+  const add = (ctx: DesignContext, g: Generated | null, opts: VariantOptions, make: (g: Generated) => Design, keeps?: (g: Generated) => boolean): void => {
+    if (g !== null) offer(nearRoadTrial(ctx, g, opts, make), keeps);
   };
   const finish = (ctx: DesignContext, g: Generated, id: string, name: string, summarise: (d: Omit<Design, 'summary'>) => string): Design =>
     assembleDesign(ctx, g, { id, name, regime: ctx.regime.regime, summarise }, base, allowedFar);
@@ -147,7 +192,8 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
   const highMax = (h: DesignContext) => (g: Generated): Design =>
     finish(h, g, 'high-rise-max', 'High-rise, maximum floor area', (d) => highRiseSummary(d, h.regime, g.stack.stop, h.reading));
   if (low !== null) add(low, a, LARGEST, (g) => finish(low, g, 'low-rise-block', 'Low-rise block', (d) => lowRiseSummary(d, low.regime, g.stack.stop, low.reading)));
-  if (high !== null && b !== null && isGenuinelyHigh(b)) add(high, b, LARGEST, highMax(high), isGenuinelyHigh);
+  const highMaxTrial = high !== null && b !== null ? nearRoadTrial(high, b, LARGEST, highMax(high)) : null;
+  if (highMaxTrial !== null && isGenuinelyHigh(highMaxTrial.placed)) offer(highMaxTrial, isGenuinelyHigh);
   if (high !== null && b !== null) {
     const cOpts: VariantOptions = { plateAreaM2: SLENDER_SHARE * regionArea(b.plate), grossCapM2: b.stack.sums.gross };
     const centred = generateVariant(high, cOpts);
@@ -170,8 +216,8 @@ export function generateDesigns(inputs: DesignInputs): DesignSet {
       add(ctx, generateVariant(ctx, opts), opts, (g) => finish(ctx, g, id, name, (d) => openGroundSummary(d, share)));
     }
   }
-  if (out.length < MIN_DESIGNS && high !== null && b !== null && !out.some((d) => d.id === 'high-rise-max')) {
-    add(high, b, LARGEST, highMax(high));
+  if (out.length < MIN_DESIGNS && highMaxTrial !== null && !out.some((d) => d.id === 'high-rise-max')) {
+    offer(highMaxTrial);
   }
   return { designs: out, stops: { lowRise: stopOf(a), highRise: stopOf(b) }, problems: fireRoadProblems(high, b) };
 }
