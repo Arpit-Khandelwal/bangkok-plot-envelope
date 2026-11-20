@@ -45,7 +45,7 @@ Running record of key decisions and pivots. Times in IST. T+ is time since the c
 
 ## State at pause (T+3h07, Thu 19 Nov 17:38 IST)
 
-**Live:** https://bangkok-plot-envelope.arpit-khandelwal.workers.dev (matches `main`).
+**Live:** https://buildable-bangkok.arpit-khandelwal.workers.dev (matches `main`).
 
 **Done:** research, decisions, plan; geometry core; rules engine (condo, office); site data with measured building heights; zone and station lookup; interface; pipeline with designs and checks; eight example plots; independent review and its fixes.
 

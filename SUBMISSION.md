@@ -10,11 +10,11 @@ Deadline: 21 Nov 2026, 09:01:21 UTC (14:31:21 IST). Submit with dev@arpitkhandel
 
 ## 1. Live link
 
-https://bangkok-plot-envelope.arpit-khandelwal.workers.dev
+https://buildable-bangkok.arpit-khandelwal.workers.dev
 
 ## 2. Repo
 
-https://github.com/Arpit-Khandelwal/bangkok-plot-envelope (public)
+https://github.com/Arpit-Khandelwal/buildable-bangkok (public)
 
 ## 3. One-pager
 

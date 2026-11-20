@@ -4,7 +4,7 @@
 
 A browser tool for a developer who owns a plot in Bangkok and wants to know what can be built on it before paying an architect. You draw the plot on a map, mark which edges face a road and how wide each road is, and pick condominium or office. The tool shows which building rules apply, the 3D volume the building may fill, and concept designs with a pass/fail checklist, placed among the real surrounding buildings.
 
-Live: https://bangkok-plot-envelope.arpit-khandelwal.workers.dev
+Live: https://buildable-bangkok.arpit-khandelwal.workers.dev
 
 Scope: one zone only, ย.7 under the Bangkok Comprehensive Plan B.E. 2556 (2013), in the area around BTS Bang Chak and Punnawithi.
 
