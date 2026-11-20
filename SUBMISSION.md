@@ -251,6 +251,6 @@ Raw notes about THIS session only (not your general setup):
 - [ ] The one-pager fits one page.
 - [ ] Each transcript link is viewable by anyone with the link.
 - [ ] You wrote the write-up yourself. The agent may submit it, not author it.
-- [ ] Decide whether to rename the URL and repository before the links go into the doc.
+- [x] Rename decided and done (20 Nov): buildable-bangkok for both the URL and the repository.
 - [ ] Keep the receipt ID. Confirm with `check_submission`. Write it in PLAN.md.
 - [ ] Check `time_left` before submitting. You can resubmit until the deadline; the latest one is read.
